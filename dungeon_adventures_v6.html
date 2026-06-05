@@ -1,0 +1,2065 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Dungeon Adventures v6</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --oro:#ffd700;--rojo:#dc3545;--verde:#28a745;--azul:#3464c8;
+  --morado:#7c3aed;--oscuro:#080816;--panel:#0f0d24;--borde:#2a2560;
+  --gris:#888;--blanco:#fff;--texto:#dde;
+}
+body{background:var(--oscuro);color:var(--texto);font-family:'Cinzel',serif;min-height:100vh;overflow-x:hidden}
+button{cursor:pointer;border:none;outline:none;font-family:'Cinzel',serif}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 15% 40%,rgba(80,0,120,.22),transparent 55%),
+             radial-gradient(ellipse at 85% 15%,rgba(0,30,100,.25),transparent 55%),
+             radial-gradient(ellipse at 50% 90%,rgba(120,10,0,.12),transparent 50%);
+  animation:bgPulse 9s ease-in-out infinite alternate;}
+@keyframes bgPulse{0%{opacity:.7}100%{opacity:1}}
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.stars::before,.stars::after{content:'';position:absolute;inset:0;
+  background-image:radial-gradient(1px 1px at 8% 12%,#fff,transparent),radial-gradient(1.5px 1.5px at 22% 38%,rgba(255,255,255,.7),transparent),radial-gradient(1px 1px at 42% 8%,#fff,transparent),radial-gradient(1px 1px at 63% 52%,rgba(255,215,0,.5),transparent),radial-gradient(1.5px 1.5px at 77% 22%,#fff,transparent),radial-gradient(1px 1px at 91% 68%,rgba(255,255,255,.8),transparent),radial-gradient(1px 1px at 33% 82%,#fff,transparent),radial-gradient(1.5px 1.5px at 56% 91%,rgba(255,215,0,.4),transparent),radial-gradient(1px 1px at 4% 55%,rgba(255,255,255,.6),transparent);}
+.stars::after{animation:twinkle 4s ease-in-out infinite alternate}
+@keyframes twinkle{0%{opacity:.4}100%{opacity:1}}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(8,8,22,.97);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,215,0,.18);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:60px;gap:.5rem;}
+.logo{font-family:'Cinzel Decorative',cursive;font-size:.9rem;font-weight:900;background:linear-gradient(135deg,var(--oro),#ff8c00,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:1px;filter:drop-shadow(0 0 8px rgba(255,215,0,.3));white-space:nowrap;}
+nav{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:center}
+nav button{background:transparent;color:var(--texto);padding:.35rem .65rem;border-radius:6px;font-size:.72rem;border:1px solid transparent;transition:all .2s;letter-spacing:.5px;}
+nav button:hover,nav button.active{background:rgba(52,100,200,.2);border-color:rgba(52,100,200,.5);color:var(--blanco)}
+#btn-sesion{background:linear-gradient(135deg,var(--morado),var(--azul));color:var(--blanco);padding:.35rem .85rem;border-radius:8px;font-weight:700;font-size:.75rem;box-shadow:0 2px 12px rgba(124,58,237,.4);white-space:nowrap;flex-shrink:0;}
+
+/* PAGES */
+.pagina{display:none;padding:1.5rem;max-width:1100px;margin:0 auto;position:relative;z-index:1}
+.pagina.activa{display:block}
+
+/* LOADING */
+.db-loading{position:fixed;inset:0;background:rgba(8,8,22,.97);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.db-loading.oculto{display:none}
+.db-loading-spinner{width:48px;height:48px;border:3px solid rgba(255,215,0,.2);border-top-color:var(--oro);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.db-loading p{color:var(--gris);font-size:.85rem;text-align:center}
+.db-loading h3{color:var(--oro);font-family:'Cinzel Decorative',cursive;font-size:1rem}
+
+/* SYNC */
+.sync-badge{position:fixed;top:68px;right:1rem;z-index:200;background:rgba(15,13,36,.95);border:1px solid;border-radius:8px;padding:.35rem .75rem;font-size:.72rem;display:flex;align-items:center;gap:.4rem;transition:all .3s;pointer-events:none;}
+.sync-badge.online{border-color:rgba(40,167,69,.5);color:#5cb85c}
+.sync-badge.offline{border-color:rgba(255,215,0,.5);color:var(--oro)}
+.sync-badge.syncing{border-color:rgba(52,100,200,.5);color:#74a0f0}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.sync-dot.pulse{animation:dotPulse 1s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HERO */
+.hero{text-align:center;padding:2rem 1rem 1.5rem}
+.hero h1{font-family:'Cinzel Decorative',cursive;font-size:clamp(1.5rem,5vw,3.5rem);font-weight:900;background:linear-gradient(135deg,#ffe55a,#ff8c00,#ffd700,#ff4500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.8rem;animation:heroGlow 3s ease-in-out infinite alternate;}
+@keyframes heroGlow{0%{filter:drop-shadow(0 0 10px rgba(255,140,0,.3))}100%{filter:drop-shadow(0 0 28px rgba(255,140,0,.6))}}
+.hero p{font-size:.9rem;color:var(--gris);max-width:540px;margin:0 auto 1.5rem;line-height:1.7}
+.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.btn{padding:.65rem 1.5rem;border-radius:10px;font-size:.85rem;font-weight:700;transition:all .25s;display:inline-flex;align-items:center;gap:.5rem;letter-spacing:.5px}
+.btn-primary{background:linear-gradient(135deg,#3d0080,var(--morado));color:var(--blanco);border:1px solid rgba(124,58,237,.5);box-shadow:0 4px 20px rgba(124,58,237,.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(124,58,237,.55)}
+.btn-secondary{background:transparent;color:var(--oro);border:1.5px solid rgba(255,215,0,.45)}
+.btn-secondary:hover{background:rgba(255,215,0,.07);transform:translateY(-2px);border-color:var(--oro)}
+.btn-danger{background:linear-gradient(135deg,#6b0000,var(--rojo));color:var(--blanco);border:1px solid rgba(220,53,69,.35)}
+.btn-sm{padding:.38rem .85rem;font-size:.75rem}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1rem;margin-top:2rem}
+.feat-card{background:rgba(15,13,36,.8);border:1px solid rgba(42,37,96,.7);border-radius:14px;padding:1.2rem;text-align:center;transition:all .3s;backdrop-filter:blur(4px);}
+.feat-card:hover{transform:translateY(-4px);border-color:rgba(52,100,200,.5);box-shadow:0 8px 28px rgba(52,100,200,.12)}
+.feat-icon{font-size:2rem;margin-bottom:.5rem;filter:drop-shadow(0 0 5px rgba(255,215,0,.3))}
+.feat-card h3{color:var(--oro);font-size:.82rem;margin-bottom:.2rem}
+.feat-card p{font-size:.72rem;color:var(--gris);line-height:1.5}
+
+/* JUEGO */
+.game-container{max-width:820px;margin:0 auto}
+.game-header{display:flex;justify-content:space-between;align-items:center;background:rgba(15,13,36,.9);border:1px solid var(--borde);border-radius:12px;padding:.75rem 1rem;margin-bottom:.85rem;backdrop-filter:blur(8px);}
+.vidas{display:flex;gap:.15rem;font-size:1.1rem}
+.sala-info{font-size:.85rem;color:var(--azul);font-weight:700;font-family:'Cinzel Decorative',cursive;letter-spacing:.5px}
+.puntaje{font-weight:900;color:var(--oro);font-size:.95rem;font-family:'Cinzel Decorative',cursive}
+.sel-dificultad{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;margin:1rem 0}
+.dif-btn{background:rgba(15,13,36,.85);border:2px solid var(--borde);border-radius:14px;padding:1.1rem;text-align:center;transition:all .25s;color:var(--texto);}
+.dif-btn:hover{transform:translateY(-3px)}
+.dif-btn.facil:hover{border-color:#28a745;box-shadow:0 6px 22px rgba(40,167,69,.28);background:rgba(40,167,69,.05)}
+.dif-btn.normal:hover{border-color:var(--oro);box-shadow:0 6px 22px rgba(255,215,0,.28);background:rgba(255,215,0,.05)}
+.dif-btn.dificil:hover{border-color:var(--rojo);box-shadow:0 6px 22px rgba(220,53,69,.28);background:rgba(220,53,69,.05)}
+.dif-btn .dif-icon{font-size:1.8rem;margin-bottom:.4rem}
+.dif-btn h3{font-size:.9rem;margin-bottom:.25rem;font-family:'Cinzel Decorative',cursive}
+.dif-btn p{font-size:.73rem;color:var(--gris)}
+.char-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin:.8rem 0}
+.char-opt{background:rgba(15,13,36,.8);border:2px solid var(--borde);border-radius:12px;padding:.85rem;text-align:center;transition:all .2s;cursor:pointer;position:relative;}
+.char-opt:hover{border-color:var(--azul);transform:translateY(-3px);background:rgba(52,100,200,.08)}
+.char-opt.seleccionado{border-color:var(--oro);background:rgba(255,215,0,.06);box-shadow:0 0 18px rgba(255,215,0,.14)}
+.char-opt.bloqueado{opacity:.5;filter:grayscale(.7)}
+.char-opt .char-em{font-size:2.2rem;display:block;filter:drop-shadow(0 0 7px rgba(255,215,0,.28))}
+.char-opt .char-nm{font-size:.75rem;color:var(--oro);margin-top:.3rem;font-weight:700}
+.char-opt .char-cls{font-size:.65rem;color:var(--gris);margin-top:.12rem}
+.char-lock{position:absolute;top:6px;right:8px;font-size:.75rem;color:var(--oro)}
+.arena{background:linear-gradient(180deg,#090220,#0e0420 45%,#160728 100%);border:2px solid rgba(124,58,237,.28);border-radius:16px;padding:.85rem 1.2rem 1rem;margin-bottom:.8rem;position:relative;overflow:hidden;min-height:170px;}
+.arena::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 20% 85%,rgba(60,0,100,.35),transparent 50%),radial-gradient(ellipse at 80% 85%,rgba(100,0,0,.25),transparent 50%);}
+.arena-floor{position:absolute;bottom:0;left:0;right:0;height:32px;background:linear-gradient(0deg,rgba(70,35,0,.38),transparent);border-top:1px solid rgba(255,215,0,.08);}
+.combatientes{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1;min-height:140px;}
+.personaje-jugador{text-align:center;position:relative}
+.char-sprite{font-size:3.8rem;line-height:1;display:block;filter:drop-shadow(0 0 10px rgba(100,150,255,.55));animation:floatChar 3.2s ease-in-out infinite;}
+@keyframes floatChar{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.char-name{font-size:.62rem;color:#74a0f0;font-weight:700;letter-spacing:1px;margin-top:.22rem}
+.char-hp-bar{width:70px;height:5px;background:rgba(0,0,0,.5);border-radius:3px;margin:.25rem auto 0;border:1px solid rgba(255,255,255,.1);overflow:hidden}
+.char-hp-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.hp-alto{background:linear-gradient(90deg,#00aa44,#44ff88)}
+.hp-medio{background:linear-gradient(90deg,#cc8800,#ffcc00)}
+.hp-bajo{background:linear-gradient(90deg,#990000,#ff3333)}
+.enemigo-cont{text-align:center;position:relative}
+.enemigo-sprite{font-size:4.2rem;line-height:1;display:block;filter:drop-shadow(0 0 14px rgba(220,53,69,.45));animation:enemyBob 2.2s ease-in-out infinite;}
+@keyframes enemyBob{0%,100%{transform:translateY(0) scaleX(-1)}50%{transform:translateY(-4px) scaleX(-1)}}
+.enemy-name{font-size:.62rem;color:#ff9090;font-weight:700;letter-spacing:1px;margin-top:.22rem}
+.vs-txt{font-family:'Cinzel Decorative',cursive;font-size:1.2rem;font-weight:900;color:rgba(255,215,0,.65);align-self:center;text-shadow:0 0 18px rgba(255,215,0,.45);animation:vsPulse 2.2s ease-in-out infinite;}
+@keyframes vsPulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes kAtaque{0%{transform:translateX(0)}35%{transform:translateX(55px)}65%{transform:translateX(0)}100%{transform:translateX(0)}}
+@keyframes kAtaqueInv{0%{transform:translateX(0) scaleX(-1)}35%{transform:translateX(-55px) scaleX(-1)}65%{transform:translateX(0) scaleX(-1)}100%{transform:translateX(0) scaleX(-1)}}
+@keyframes kDaño{0%{transform:translateX(0)}15%{transform:translateX(-13px);filter:brightness(3) saturate(0)}40%{transform:translateX(9px)}65%{transform:translateX(-6px)}85%{transform:translateX(3px)}100%{transform:translateX(0)}}
+@keyframes kDañoInv{0%{transform:translateX(0) scaleX(-1)}15%{transform:translateX(13px) scaleX(-1);filter:brightness(3) saturate(0)}40%{transform:translateX(-9px) scaleX(-1)}65%{transform:translateX(6px) scaleX(-1)}85%{transform:translateX(-3px) scaleX(-1)}100%{transform:translateX(0) scaleX(-1)}}
+@keyframes kEsquivar{0%,100%{transform:translateY(0)}50%{transform:translateY(-28px)}}
+@keyframes kMorir{0%{transform:scaleX(-1) scale(1);opacity:1}40%{transform:scaleX(-1) scale(1.25) rotate(8deg);filter:brightness(4)}100%{transform:scaleX(-1) scale(0) rotate(50deg);opacity:0}}
+.dmg-float{position:absolute;font-size:1.2rem;font-weight:900;font-family:'Cinzel Decorative',cursive;pointer-events:none;z-index:20;animation:kFloatDmg 1.3s ease-out forwards;}
+@keyframes kFloatDmg{0%{opacity:1;transform:translateY(0) scale(1)}65%{opacity:1;transform:translateY(-48px) scale(1.18)}100%{opacity:0;transform:translateY(-78px) scale(.8)}}
+.sala-transicion{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;animation:sFadeIn .3s ease-out;}
+@keyframes sFadeIn{from{opacity:0}to{opacity:1}}
+.sala-transicion h2{font-family:'Cinzel Decorative',cursive;font-size:2rem;color:var(--oro);text-shadow:0 0 30px rgba(255,215,0,.6);margin-bottom:.5rem;animation:sText .5s ease-out .2s both;}
+@keyframes sText{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.sala-transicion p{color:var(--gris);font-size:.95rem;margin-bottom:1.5rem}
+.sala-enemigo-preview{font-size:5rem;animation:sEnemy .6s ease-out .3s both;}
+@keyframes sEnemy{from{transform:scale(0) rotate(-15deg)}to{transform:scale(1) rotate(0)}}
+#pantalla-pregunta{display:none}
+.pregunta-panel{background:rgba(15,13,36,.92);border:2px solid rgba(52,100,200,.38);border-radius:16px;padding:1.5rem;backdrop-filter:blur(8px);}
+.pregunta-titulo{color:var(--oro);font-size:.78rem;margin-bottom:1rem;text-align:center;letter-spacing:2px;opacity:.9;}
+.pregunta-texto{font-size:1.05rem;font-weight:700;color:var(--blanco);text-align:center;margin-bottom:1.4rem;line-height:1.6;}
+.opciones-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.opcion-btn{background:rgba(8,8,22,.8);border:2px solid rgba(42,37,96,.65);border-radius:10px;padding:.75rem .9rem;color:var(--texto);font-size:.85rem;display:flex;align-items:center;gap:.6rem;transition:all .2s;text-align:left;}
+.opcion-btn:hover:not(:disabled){transform:scale(1.015)}
+.opcion-btn.opcion-a:hover:not(:disabled){border-color:#3464c8;background:rgba(52,100,200,.14);box-shadow:0 0 14px rgba(52,100,200,.18)}
+.opcion-btn.opcion-b:hover:not(:disabled){border-color:#7c3aed;background:rgba(124,58,237,.14);box-shadow:0 0 14px rgba(124,58,237,.18)}
+.opcion-btn.opcion-c:hover:not(:disabled){border-color:#28a745;background:rgba(40,167,69,.14);box-shadow:0 0 14px rgba(40,167,69,.18)}
+.opcion-btn.opcion-d:hover:not(:disabled){border-color:#e06030;background:rgba(224,96,48,.14);box-shadow:0 0 14px rgba(224,96,48,.18)}
+.opcion-btn.correcta{border-color:#28a745!important;background:rgba(40,167,69,.18)!important;color:#fff;box-shadow:0 0 18px rgba(40,167,69,.35)!important}
+.opcion-btn.incorrecta{border-color:var(--rojo)!important;background:rgba(220,53,69,.14)!important}
+.opcion-btn:disabled{cursor:default}
+.letra-btn{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0;font-family:'Cinzel Decorative',cursive;}
+.letra-a{background:#3464c8}.letra-b{background:#7c3aed}.letra-c{background:#28a745}.letra-d{background:#e06030}
+.timer-bar{height:5px;background:rgba(42,37,96,.45);border-radius:3px;margin-bottom:1rem;overflow:hidden}
+.timer-fill{height:100%;border-radius:3px;background:var(--verde)}
+.timer-fill.urgente{background:var(--rojo);animation:timerPulse .55s ease-in-out infinite}
+@keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.55}}
+.combo-badge{display:none;text-align:center;margin-bottom:.65rem;font-size:1rem;font-weight:900;color:#ff6030;font-family:'Cinzel Decorative',cursive;letter-spacing:1px;}
+@keyframes comboPulso{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.powerups-bar{display:flex;gap:.5rem;margin-bottom:.8rem;justify-content:center;background:rgba(8,8,22,.68);border:1px solid rgba(42,37,96,.45);border-radius:10px;padding:.5rem;flex-wrap:wrap;}
+.pu-btn{background:rgba(15,13,36,.8);border:1px solid rgba(42,37,96,.65);border-radius:8px;padding:.35rem .6rem;color:var(--texto);font-size:.7rem;transition:all .2s;display:flex;align-items:center;gap:.25rem;position:relative;flex-direction:column;min-width:52px;text-align:center;}
+.pu-btn .pu-label{font-size:.6rem;color:var(--gris);margin-top:.08rem;display:block;}
+.pu-btn:hover:not(:disabled){transform:translateY(-2px);border-color:var(--oro);box-shadow:0 4px 14px rgba(255,215,0,.18)}
+.pu-btn:disabled{opacity:.3;cursor:not-allowed}
+.pu-count{position:absolute;top:-5px;right:-5px;background:var(--morado);color:#fff;border-radius:50%;width:14px;height:14px;font-size:.56rem;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.pu-btn.pocion-btn:hover:not(:disabled){border-color:#ff6090;box-shadow:0 4px 14px rgba(255,60,100,.25)}
+.pu-btn.escudo-btn:hover:not(:disabled){border-color:#74a0f0;box-shadow:0 4px 14px rgba(100,150,255,.25)}
+.pu-btn.milagro-btn:hover:not(:disabled){border-color:#ffd700;box-shadow:0 4px 14px rgba(255,215,0,.3)}
+.pu-btn.rayo-btn:hover:not(:disabled){border-color:#ff9900;box-shadow:0 4px 14px rgba(255,153,0,.28)}
+.pu-btn.congelar-btn:hover:not(:disabled){border-color:#00e5ff;box-shadow:0 4px 14px rgba(0,229,255,.25)}
+.pu-btn.ojo-btn:hover:not(:disabled){border-color:#a855f7;box-shadow:0 4px 14px rgba(168,85,247,.25)}
+/* Dificultad analítica en retroalimentación */
+.feedback-dificil{background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.35);}
+.feedback-dificil::before{background:linear-gradient(180deg,var(--rojo),#ff6030);}
+.dificultad-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.15rem .55rem;border-radius:6px;font-size:.65rem;font-weight:700;margin-left:.5rem;}
+.dif-alta{background:rgba(220,53,69,.2);color:#ff7b7b;border:1px solid rgba(220,53,69,.35);}
+.dif-media{background:rgba(255,215,0,.1);color:var(--oro);border:1px solid rgba(255,215,0,.25);}
+.dif-baja{background:rgba(40,167,69,.1);color:#5cb85c;border:1px solid rgba(40,167,69,.25);}
+/* Sección de análisis al final */
+.analisis-panel{background:rgba(15,13,36,.9);border:2px solid rgba(52,100,200,.35);border-radius:14px;padding:1.1rem;margin-top:1rem;max-width:640px;margin-left:auto;margin-right:auto;}
+.analisis-titulo{color:var(--azul);font-family:'Cinzel Decorative',cursive;font-size:.88rem;margin-bottom:.85rem;letter-spacing:1px;display:flex;align-items:center;gap:.5rem;}
+.analisis-item{display:flex;align-items:center;gap:.7rem;background:rgba(8,8,22,.6);border-radius:8px;padding:.65rem .9rem;margin-bottom:.45rem;border-left:3px solid;}
+.analisis-item.dificil{border-color:var(--rojo);}
+.analisis-item.normal{border-color:var(--oro);}
+.analisis-item.facil{border-color:var(--verde);}
+.analisis-tema{font-size:.82rem;color:var(--blanco);font-weight:700;flex:1;}
+.analisis-pct{font-size:.9rem;font-weight:900;font-family:'Cinzel Decorative',cursive;}
+.analisis-bar{height:4px;border-radius:2px;background:rgba(42,37,96,.5);margin-top:.25rem;overflow:hidden;}
+.analisis-bar-fill{height:100%;border-radius:2px;transition:width .6s ease;}
+/* Leaderboard mejorado */
+.lb-destacado{border-color:rgba(255,215,0,.4)!important;background:rgba(255,215,0,.04)!important;box-shadow:0 0 16px rgba(255,215,0,.1);}
+.lb-yo{border-color:rgba(52,100,200,.5)!important;background:rgba(52,100,200,.06)!important;}
+.lb-tabs{display:flex;gap:.4rem;margin-bottom:.8rem;flex-wrap:wrap;}
+.lb-tab{background:rgba(15,13,36,.8);border:1px solid var(--borde);color:var(--gris);padding:.35rem .85rem;border-radius:8px;font-size:.75rem;cursor:pointer;transition:all .2s;font-family:'Cinzel',serif;}
+.lb-tab.activo{background:rgba(52,100,200,.25);border-color:var(--azul);color:var(--blanco);}
+.resultado-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center}
+.resultado-panel{background:var(--panel);border-radius:16px;padding:1.8rem;text-align:center;min-width:250px;border:3px solid;animation:slideIn .28s ease-out;}
+@keyframes slideIn{from{transform:scale(.65)translateY(-28px);opacity:0}to{transform:scale(1)translateY(0);opacity:1}}
+.resultado-panel.correcto{border-color:var(--verde);box-shadow:0 0 35px rgba(40,167,69,.28)}
+.resultado-panel.incorrecto{border-color:var(--rojo);box-shadow:0 0 35px rgba(220,53,69,.28)}
+.resultado-icono{font-size:2.5rem;margin-bottom:.3rem}
+.resultado-texto{font-size:1.4rem;font-weight:900;margin-bottom:.3rem;font-family:'Cinzel Decorative',cursive}
+.resultado-pts{font-size:1rem;color:var(--oro);font-weight:700;font-family:'Cinzel Decorative',cursive}
+.resultado-correcta{font-size:.8rem;color:#ffaaaa;margin-top:.25rem}
+.jefe-panel{background:linear-gradient(135deg,#1a0008,#0a0a1e);border:2px solid var(--rojo);border-radius:16px;padding:1.2rem;text-align:center;margin-bottom:.8rem;box-shadow:0 0 28px rgba(220,53,69,.18);}
+.jefe-titulo{color:var(--rojo);font-size:1.1rem;font-weight:900;font-family:'Cinzel Decorative',cursive;animation:parpadeo 1.1s infinite;letter-spacing:2px}
+@keyframes parpadeo{0%,100%{opacity:1;text-shadow:0 0 10px rgba(220,53,69,.5)}50%{opacity:.55;text-shadow:0 0 22px rgba(220,53,69,.9)}}
+.barra-jefe-cont{background:rgba(255,0,0,.1);border-radius:8px;height:12px;margin:.65rem auto;max-width:360px;border:1px solid rgba(220,53,69,.35)}
+.barra-jefe{height:100%;background:linear-gradient(90deg,#6b0000,var(--rojo));border-radius:8px;transition:width .55s}
+.progreso-preguntas{display:flex;gap:.6rem;justify-content:center;margin-top:.65rem}
+.circulo-p{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;border:2px solid;transition:all .3s;font-family:'Cinzel Decorative',cursive}
+.circulo-pendiente{border-color:#555;background:#1a1a2a;color:#555}
+.circulo-actual{border-color:var(--oro);background:rgba(255,215,0,.14);color:var(--oro);transform:scale(1.18);box-shadow:0 0 14px rgba(255,215,0,.3)}
+.circulo-correcto{border-color:var(--verde);background:rgba(40,167,69,.18);color:var(--verde)}
+.circulo-incorrecto{border-color:var(--rojo);background:rgba(220,53,69,.14);color:var(--rojo)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.8rem;margin-bottom:1.2rem}
+.stat-card{background:rgba(15,13,36,.8);border:1px solid var(--borde);border-radius:12px;padding:.9rem;text-align:center;transition:all .3s}
+.stat-card:hover{border-color:rgba(255,215,0,.28);transform:translateY(-2px)}
+.stat-val{font-size:1.5rem;font-weight:900;color:var(--oro);font-family:'Cinzel Decorative',cursive}
+.stat-lbl{font-size:.7rem;color:var(--gris);margin-top:.15rem}
+.seccion-titulo{font-size:.9rem;font-weight:700;color:var(--azul);border-bottom:1px solid var(--borde);padding-bottom:.4rem;margin-bottom:.85rem;margin-top:1.3rem;letter-spacing:1px}
+.tabla-hist{width:100%;border-collapse:collapse;font-size:.78rem}
+.tabla-hist th{background:rgba(8,8,22,.8);color:var(--oro);padding:.55rem;text-align:left;border-bottom:1px solid var(--borde);font-size:.72rem;letter-spacing:.5px}
+.tabla-hist td{padding:.5rem;border-bottom:1px solid rgba(42,37,96,.28)}
+.tabla-hist tr:hover td{background:rgba(255,255,255,.02)}
+.badge{padding:.14rem .48rem;border-radius:5px;font-size:.66rem;font-weight:700}
+.badge-verde{background:rgba(40,167,69,.2);color:#5cb85c}
+.badge-rojo{background:rgba(220,53,69,.2);color:#e74c3c}
+.badge-azul{background:rgba(52,100,200,.2);color:#74a0f0}
+.badge-oro{background:rgba(255,215,0,.14);color:var(--oro)}
+.lb-item{display:flex;align-items:center;gap:.9rem;background:rgba(15,13,36,.8);border:1px solid var(--borde);border-radius:10px;padding:.75rem 1.1rem;margin-bottom:.4rem;transition:all .2s}
+.lb-item:hover{border-color:rgba(52,100,200,.38);transform:translateX(3px)}
+.lb-pos{font-size:1.1rem;font-weight:900;width:32px;text-align:center;font-family:'Cinzel Decorative',cursive}
+.lb-pos.oro{color:#ffd700;filter:drop-shadow(0 0 5px rgba(255,215,0,.5))}
+.lb-pos.plata{color:#c0c0c0}.lb-pos.bronce{color:#cd7f32}
+.lb-name{font-weight:700;font-size:.88rem;flex:1}
+.lb-pts{font-weight:900;color:var(--oro);font-size:.92rem;font-family:'Cinzel Decorative',cursive}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.abierto{display:flex}
+.modal{background:var(--panel);border:1px solid rgba(42,37,96,.8);border-radius:18px;padding:1.6rem;min-width:300px;max-width:95vw;width:100%;animation:slideIn .28s ease-out;box-shadow:0 20px 55px rgba(0,0,0,.5)}
+.modal h2{color:var(--oro);margin-bottom:1.1rem;text-align:center;font-family:'Cinzel Decorative',cursive;font-size:1rem;letter-spacing:1px}
+.form-group{margin-bottom:.8rem}
+.form-group label{display:block;font-size:.73rem;color:var(--gris);margin-bottom:.22rem;letter-spacing:.5px}
+.form-group input{width:100%;background:rgba(8,8,22,.8);border:1px solid var(--borde);border-radius:8px;padding:.58rem .85rem;color:var(--blanco);font-size:.85rem;transition:border .2s;font-family:'Cinzel',serif}
+.form-group input:focus{outline:none;border-color:var(--azul);box-shadow:0 0 9px rgba(52,100,200,.18)}
+.form-error{color:var(--rojo);font-size:.73rem;margin-top:.2rem;display:none}
+.modal-tabs{display:flex;gap:.35rem;margin-bottom:1rem}
+.modal-tab{flex:1;padding:.4rem;background:transparent;color:var(--gris);border-radius:7px;border:1px solid var(--borde);font-size:.78rem;transition:all .2s}
+.modal-tab.activo{background:var(--azul);color:var(--blanco);border-color:var(--azul)}
+.notif{position:fixed;bottom:1.5rem;right:1rem;z-index:500;background:rgba(15,13,36,.97);border:1px solid var(--verde);border-radius:10px;padding:.65rem 1.1rem;font-size:.82rem;color:var(--blanco);transform:translateX(130%);transition:transform .38s;max-width:260px;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.notif.show{transform:translateX(0)}
+.notif.error{border-color:var(--rojo)}
+.notif.info{border-color:var(--azul)}
+
+/* ══ LOGROS ══ */
+.logro-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-160px);z-index:600;background:linear-gradient(135deg,#1a1400,#2a2000);border:2px solid var(--oro);border-radius:14px;padding:.9rem 1.5rem;display:flex;align-items:center;gap:.85rem;box-shadow:0 8px 40px rgba(255,215,0,.35);transition:transform .45s cubic-bezier(.17,.67,.38,1.3);min-width:280px;max-width:90vw;}
+.logro-toast.show{transform:translateX(-50%) translateY(0)}
+.logro-toast-icon{font-size:2.2rem;flex-shrink:0}
+.logro-toast-txt h4{color:var(--oro);font-size:.85rem;margin-bottom:.12rem;font-family:'Cinzel Decorative',cursive}
+.logro-toast-txt p{color:#ddd;font-size:.75rem}
+.logro-toast-txt .lt-recompensa{color:#74a0f0;font-size:.7rem;margin-top:.2rem}
+/* Logros grid en perfil */
+.logros-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:.8rem}
+.logro-card{background:rgba(15,13,36,.8);border:1px solid var(--borde);border-radius:12px;padding:.95rem;display:flex;align-items:flex-start;gap:.6rem;transition:all .3s;position:relative;overflow:hidden;}
+.logro-card.obtenido{border-color:rgba(255,215,0,.4);background:rgba(255,215,0,.04);box-shadow:0 0 16px rgba(255,215,0,.08)}
+.logro-card:not(.obtenido){opacity:.38;filter:grayscale(.65)}
+.logro-card.obtenido::before{content:'✓';position:absolute;top:6px;right:9px;font-size:.7rem;color:var(--verde);font-weight:900}
+.logro-icono{font-size:1.65rem;flex-shrink:0}
+.logro-nombre{font-weight:700;font-size:.82rem;color:var(--oro)}
+.logro-desc{font-size:.7rem;color:var(--gris);margin-top:.1rem;line-height:1.4}
+.logro-xp{font-size:.66rem;color:#74a0f0;margin-top:.2rem}
+.logro-monedas{font-size:.66rem;color:var(--oro);margin-top:.1rem}
+/* Monedas HUD */
+.monedas-hud{display:flex;align-items:center;gap:.3rem;font-size:.82rem;color:var(--oro);font-weight:700;font-family:'Cinzel Decorative',cursive}
+
+/* ══ TIENDA ══ */
+.tienda-seccion{margin-bottom:1.8rem}
+.tienda-seccion h3{font-family:'Cinzel Decorative',cursive;color:var(--oro);font-size:.95rem;margin-bottom:1rem;letter-spacing:1px;padding-bottom:.4rem;border-bottom:1px solid var(--borde);}
+.tienda-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:.85rem}
+.item-tienda{background:rgba(15,13,36,.85);border:2px solid var(--borde);border-radius:14px;padding:1.1rem;text-align:center;transition:all .3s;position:relative;}
+.item-tienda:not(.comprado):not(.sin-fondos):hover{border-color:var(--oro);transform:translateY(-4px);box-shadow:0 8px 28px rgba(255,215,0,.12)}
+.item-tienda.comprado{border-color:rgba(40,167,69,.5);background:rgba(40,167,69,.04)}
+.item-tienda.sin-fondos{opacity:.5}
+.item-sprite{font-size:2.4rem;margin-bottom:.5rem;display:block;filter:drop-shadow(0 0 8px rgba(255,215,0,.3))}
+.item-nombre{font-size:.82rem;color:var(--blanco);font-weight:700;margin-bottom:.2rem}
+.item-desc{font-size:.68rem;color:var(--gris);line-height:1.4;margin-bottom:.6rem}
+.item-precio{font-size:.82rem;color:var(--oro);font-weight:900;font-family:'Cinzel Decorative',cursive;margin-bottom:.55rem}
+.btn-comprar{background:linear-gradient(135deg,#3d0080,var(--morado));color:#fff;border:none;border-radius:8px;padding:.38rem .9rem;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Cinzel',serif;width:100%}
+.btn-comprar:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(124,58,237,.4)}
+.btn-comprar.ya-comprado{background:rgba(40,167,69,.2);color:#5cb85c;cursor:default}
+.btn-comprar.equipado{background:rgba(255,215,0,.15);color:var(--oro);cursor:default}
+.tienda-balance{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;margin-bottom:1.2rem;background:rgba(15,13,36,.8);border:1px solid rgba(255,215,0,.2);border-radius:10px;padding:.6rem 1rem;font-size:.88rem;color:var(--oro);font-weight:700;font-family:'Cinzel Decorative',cursive}
+
+/* ADMIN */
+.admin-panel{background:linear-gradient(135deg,#0a0010,#100020);border:2px solid rgba(255,60,60,.38);border-radius:16px;padding:1.3rem}
+.admin-titulo{color:#ff4444;font-family:'Cinzel Decorative',cursive;font-size:1rem;margin-bottom:1.2rem;text-align:center;letter-spacing:2px;text-shadow:0 0 14px rgba(255,60,60,.5)}
+.admin-tabla{width:100%;border-collapse:collapse;font-size:.78rem}
+.admin-tabla th{background:rgba(30,0,0,.8);color:#ff9090;padding:.55rem;border-bottom:1px solid rgba(255,60,60,.2);text-align:left;letter-spacing:.5px}
+.admin-tabla td{padding:.5rem;border-bottom:1px solid rgba(50,10,10,.45);color:var(--texto)}
+.admin-tabla tr:hover td{background:rgba(255,0,0,.03)}
+.admin-btn-del{background:rgba(220,53,69,.2);border:1px solid rgba(220,53,69,.28);color:#ff8090;border-radius:5px;padding:.16rem .5rem;font-size:.68rem;cursor:pointer;transition:all .2s;font-family:'Cinzel',serif}
+.admin-btn-del:hover{background:rgba(220,53,69,.38);color:#fff}
+.admin-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;margin-bottom:1rem}
+.admin-stat{background:rgba(30,0,0,.5);border:1px solid rgba(255,60,60,.14);border-radius:8px;padding:.7rem;text-align:center}
+.admin-stat .val{font-size:1.35rem;font-weight:900;color:#ff6060;font-family:'Cinzel Decorative',cursive}
+.admin-stat .lbl{font-size:.67rem;color:var(--gris)}
+.admin-search{width:100%;background:rgba(20,0,0,.7);border:1px solid rgba(255,60,60,.2);border-radius:8px;padding:.5rem .85rem;color:var(--blanco);margin-bottom:.7rem;font-family:'Cinzel',serif;font-size:.8rem}
+.admin-search:focus{outline:none;border-color:rgba(255,60,60,.48)}
+.admin-search::placeholder{color:rgba(255,100,100,.38)}
+.barra-precision{height:6px;border-radius:4px;background:var(--borde);margin-top:.25rem}
+.barra-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--rojo),var(--oro),var(--verde))}
+#pantalla-fin{text-align:center;padding:1.5rem}
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.7rem;max-width:580px;margin:1rem auto}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--oscuro)}::-webkit-scrollbar-thumb{background:var(--borde);border-radius:3px}
+
+/* ══ FEEDBACK PANEL (retroalimentación) ══ */
+.feedback-section{margin-top:1.6rem;text-align:left;max-width:640px;margin-left:auto;margin-right:auto;}
+.feedback-titulo{font-family:'Cinzel Decorative',cursive;color:var(--oro);font-size:.95rem;letter-spacing:1px;margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid rgba(255,215,0,.2);padding-bottom:.5rem;}
+.feedback-item{background:rgba(15,13,36,.9);border:1px solid rgba(220,53,69,.3);border-radius:12px;padding:1rem 1.1rem;margin-bottom:.7rem;position:relative;overflow:hidden;transition:all .3s;}
+.feedback-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rojo);border-radius:3px 0 0 3px;}
+.feedback-item:hover{border-color:rgba(220,53,69,.55);transform:translateX(2px)}
+.feedback-pregunta{font-size:.88rem;color:var(--blanco);font-weight:700;margin-bottom:.55rem;line-height:1.5;}
+.feedback-respuestas{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;}
+.feedback-tag{padding:.2rem .65rem;border-radius:6px;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;gap:.3rem;}
+.feedback-tag.erronea{background:rgba(220,53,69,.18);border:1px solid rgba(220,53,69,.4);color:#ff7b7b;}
+.feedback-tag.correcta{background:rgba(40,167,69,.18);border:1px solid rgba(40,167,69,.4);color:#5cb85c;}
+.feedback-empty{text-align:center;color:var(--gris);font-size:.85rem;padding:1.5rem;background:rgba(40,167,69,.05);border:1px solid rgba(40,167,69,.2);border-radius:12px;}
+.feedback-empty .feedback-big{font-size:2rem;margin-bottom:.4rem;}
+
+/* ══ FIN MEJORADO ══ */
+.fin-tabs{display:flex;gap:.4rem;justify-content:center;margin:1.2rem 0 .5rem;}
+.fin-tab{background:rgba(15,13,36,.8);border:1px solid var(--borde);border-radius:8px;padding:.38rem .9rem;color:var(--gris);font-size:.77rem;cursor:pointer;transition:all .2s;font-family:'Cinzel',serif;}
+.fin-tab.activo{background:rgba(52,100,200,.25);border-color:var(--azul);color:var(--blanco);}
+.fin-tab-panel{display:none;}.fin-tab-panel.activo{display:block;}
+
+/* ══ SESIÓN PERSISTENTE BADGE ══ */
+.session-badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(40,167,69,.12);border:1px solid rgba(40,167,69,.3);border-radius:6px;padding:.15rem .5rem;font-size:.65rem;color:#5cb85c;margin-left:.4rem;}
+
+/* ══ MOBILE ══ */
+@media(max-width:600px){
+  header{padding:0 .75rem;height:56px;gap:.4rem}
+  .logo{font-size:.75rem;letter-spacing:.5px}
+  nav button{padding:.28rem .48rem;font-size:.65rem}
+  #btn-sesion{padding:.28rem .65rem;font-size:.68rem}
+  .pagina{padding:.75rem}
+  .opciones-grid{grid-template-columns:1fr}
+  .sel-dificultad{grid-template-columns:1fr}
+  .char-selector{grid-template-columns:repeat(3,1fr);gap:.5rem}
+  .char-opt{padding:.6rem .4rem}
+  .char-opt .char-em{font-size:1.8rem}
+  .char-opt .char-nm{font-size:.62rem}
+  .char-opt .char-cls{font-size:.56rem}
+  .stats-grid,.admin-stats{grid-template-columns:repeat(2,1fr)}
+  .vs-txt{font-size:.95rem}
+  .powerups-bar{gap:.35rem}
+  .pu-btn{font-size:.65rem;padding:.3rem .5rem}
+  .arena{min-height:145px;padding:.65rem .8rem .8rem}
+  .char-sprite{font-size:3rem}
+  .enemigo-sprite{font-size:3.5rem}
+  .combatientes{min-height:120px}
+  .game-header{padding:.6rem .75rem}
+  .pregunta-panel{padding:1.1rem}
+  .pregunta-texto{font-size:.95rem}
+  .opcion-btn{font-size:.8rem;padding:.65rem .75rem}
+  .tienda-grid,.logros-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr))}
+  .modal{padding:1.2rem;min-width:0}
+  .sala-transicion h2{font-size:1.5rem}
+  .fin-grid{grid-template-columns:repeat(2,1fr)}
+  .hero h1{font-size:1.5rem}
+  .features{grid-template-columns:repeat(2,1fr);gap:.7rem}
+  .hero{padding:1.2rem .5rem 1rem}
+  .logro-toast{min-width:240px;padding:.7rem 1rem}
+}
+@media(max-width:380px){
+  .char-selector{grid-template-columns:repeat(3,1fr)}
+  .admin-stats{grid-template-columns:repeat(2,1fr)}
+  nav button{padding:.25rem .38rem;font-size:.6rem}
+}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+
+<div class="db-loading" id="db-loading">
+  <div class="db-loading-spinner"></div>
+  <h3>⚔ DUNGEON ADVENTURES</h3>
+  <p id="db-loading-msg">Conectando con el servidor...</p>
+</div>
+
+<div class="sync-badge online" id="sync-badge">
+  <div class="sync-dot" id="sync-dot"></div>
+  <span id="sync-txt">💾 Cargando...</span>
+</div>
+
+<!-- LOGRO TOAST -->
+<div class="logro-toast" id="logro-toast">
+  <div class="logro-toast-icon" id="lt-icon">🏅</div>
+  <div class="logro-toast-txt">
+    <h4>🎉 ¡Logro desbloqueado!</h4>
+    <p id="lt-nombre">Primera Victoria</p>
+    <div class="lt-recompensa" id="lt-recompensa">+100 XP · +200 🪙</div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">⚔ DUNGEON</div>
+  <nav>
+    <button class="active" onclick="mostrarPagina('inicio')">Inicio</button>
+    <button onclick="mostrarPagina('jugar')">⚔ Jugar</button>
+    <button onclick="mostrarPagina('leaderboard')">🏆</button>
+    <button onclick="mostrarPagina('tienda')" id="nav-tienda" style="display:none">🛒</button>
+    <button onclick="mostrarPagina('perfil')" id="nav-perfil" style="display:none">👤</button>
+    <button onclick="mostrarPagina('admin')" id="nav-admin" style="display:none">🔐</button>
+  </nav>
+  <button id="btn-sesion" onclick="abrirLogin()">Iniciar Sesión</button>
+</header>
+
+<!-- MODAL LOGIN -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal">
+    <div class="modal-tabs">
+      <button class="modal-tab activo" id="tab-login" onclick="cambiarTab('login')">Iniciar Sesión</button>
+      <button class="modal-tab" id="tab-registro" onclick="cambiarTab('registro')">Registrarse</button>
+    </div>
+    <h2 id="modal-titulo">Bienvenido de vuelta</h2>
+    <div id="form-login">
+      <div class="form-group"><label>Usuario</label><input type="text" id="l-usuario" placeholder="tu_usuario" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
+      <div id="error-login" class="form-error"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:.4rem" onclick="hacerLogin()">⚔ Entrar</button>
+    </div>
+    <div id="form-registro" style="display:none">
+      <div class="form-group"><label>Usuario</label><input type="text" id="r-usuario" placeholder="mi_usuario"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="r-email" placeholder="yo@correo.com"></div>
+      <div class="form-group"><label>Contraseña</label><input type="password" id="r-pass" placeholder="Min. 6 caracteres"></div>
+      <div class="form-group"><label>Confirmar contraseña</label><input type="password" id="r-pass2" placeholder="Repite la contraseña"></div>
+      <div id="error-registro" class="form-error"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:.4rem" onclick="hacerRegistro()">✨ Crear cuenta</button>
+    </div>
+    <button onclick="cerrarModal()" style="background:transparent;color:var(--gris);width:100%;margin-top:.7rem;padding:.3rem;font-size:.76rem">✕ Cancelar</button>
+  </div>
+</div>
+
+<div class="resultado-overlay" id="resultado-overlay">
+  <div class="resultado-panel" id="resultado-panel">
+    <div class="resultado-icono" id="resultado-icono"></div>
+    <div class="resultado-texto" id="resultado-texto"></div>
+    <div class="resultado-pts" id="resultado-pts"></div>
+    <div class="resultado-correcta" id="resultado-correcta"></div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<!-- INICIO -->
+<div class="pagina activa" id="pagina-inicio">
+  <div class="hero">
+    <h1>⚔ DUNGEON ADVENTURES</h1>
+    <p>El videojuego educativo de matemáticas donde el conocimiento es tu arma más poderosa. Derrota monstruos, conquista mazmorras, conviértete en leyenda.</p>
+    <div class="hero-btns">
+      <button class="btn btn-primary" onclick="mostrarPagina('jugar')">▶ Jugar Ahora</button>
+      <button class="btn btn-secondary" onclick="mostrarPagina('leaderboard')">🏆 Ver Ranking</button>
+    </div>
+    <div class="features">
+      <div class="feat-card"><div class="feat-icon">🧮</div><h3>Matemáticas Reales</h3><p>Aritmética, álgebra, geometría y estadística</p></div>
+      <div class="feat-card"><div class="feat-icon">⚔</div><h3>Combate RPG</h3><p>Personajes animados que luchan en tiempo real</p></div>
+      <div class="feat-card"><div class="feat-icon">🔥</div><h3>Sistema Combo</h3><p>Respuestas consecutivas multiplican tus puntos</p></div>
+      <div class="feat-card"><div class="feat-icon">🏅</div><h3>Logros y Recompensas</h3><p>Desbloquea logros y gana monedas de oro</p></div>
+      <div class="feat-card"><div class="feat-icon">🛒</div><h3>Tienda</h3><p>Compra héroes y mejoras con tus monedas</p></div>
+      <div class="feat-card"><div class="feat-icon">🌐</div><h3>Ranking Global</h3><p>Datos sincronizados entre dispositivos</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- JUGAR -->
+<div class="pagina" id="pagina-jugar">
+  <div class="game-container">
+    <div id="sel-dif-screen">
+      <h2 style="text-align:center;font-family:'Cinzel Decorative',cursive;color:var(--oro);margin-bottom:.2rem;font-size:1.1rem">⚔ ELIGE TU HÉROE</h2>
+      <p style="text-align:center;color:var(--gris);margin-bottom:.55rem;font-size:.78rem">Personajes bloqueados se compran en la Tienda 🛒</p>
+      <div class="char-selector" id="char-selector">
+        <div class="char-opt seleccionado" id="csopt-mago" onclick="seleccionarPersonaje('mago',this)"><span class="char-em">🧙</span><div class="char-nm">Mago</div><div class="char-cls">+15% pts velocidad</div></div>
+        <div class="char-opt" id="csopt-guerrero" onclick="seleccionarPersonaje('guerrero',this)"><span class="char-em">🛡️</span><div class="char-nm">Caballero</div><div class="char-cls">+1 vida extra</div></div>
+        <div class="char-opt bloqueado" id="csopt-arquero" onclick="intentarPersonaje('arquero',this)"><span class="char-em">🏹</span><div class="char-nm">Arquero</div><div class="char-cls">+20% pts velocidad</div><span class="char-lock">🔒</span></div>
+        <div class="char-opt bloqueado" id="csopt-necro" onclick="intentarPersonaje('necro',this)"><span class="char-em">💀</span><div class="char-nm">Nigromante</div><div class="char-cls">+25% pts combo</div><span class="char-lock">🔒</span></div>
+        <div class="char-opt bloqueado" id="csopt-dragon" onclick="intentarPersonaje('dragon',this)"><span class="char-em">🐉</span><div class="char-nm">Dragón</div><div class="char-cls">Doble daño jefe</div><span class="char-lock">🔒</span></div>
+        <div class="char-opt bloqueado" id="csopt-angel" onclick="intentarPersonaje('angel',this)"><span class="char-em">😇</span><div class="char-nm">Ángel</div><div class="char-cls">Revivir 1 vez</div><span class="char-lock">🔒</span></div>
+      </div>
+      <h2 style="text-align:center;font-family:'Cinzel Decorative',cursive;color:var(--oro);margin:.65rem 0 .2rem;font-size:.98rem">DIFICULTAD</h2>
+      <div class="sel-dificultad">
+        <button class="dif-btn facil" onclick="iniciarPartida('Fácil')"><div class="dif-icon">🟢</div><h3>Fácil</h3><p>Aritmética básica · 3 vidas · 30 seg</p><p style="margin-top:.4rem;color:#28a745;font-size:.75rem">+10 pts / pregunta</p></button>
+        <button class="dif-btn normal" onclick="iniciarPartida('Normal')"><div class="dif-icon">🟡</div><h3>Normal</h3><p>Operaciones compuestas · 3 vidas · 25 seg</p><p style="margin-top:.4rem;color:var(--oro);font-size:.75rem">+20 pts / pregunta</p></button>
+        <button class="dif-btn dificil" onclick="iniciarPartida('Difícil')"><div class="dif-icon">🔴</div><h3>Difícil</h3><p>Álgebra y potencias · 2 vidas · 20 seg</p><p style="margin-top:.4rem;color:var(--rojo);font-size:.75rem">+40 pts / pregunta</p></button>
+      </div>
+    </div>
+
+    <div id="pantalla-pregunta">
+      <div class="game-header">
+        <div><div class="vidas" id="hud-vidas">❤❤❤</div><div style="font-size:.6rem;color:var(--gris);margin-top:.1rem">Vidas</div></div>
+        <div style="text-align:center"><div class="sala-info" id="hud-sala">Sala 1/6</div><div style="font-size:.6rem;color:var(--gris)" id="hud-dif">Fácil</div></div>
+        <div style="text-align:right">
+          <div class="puntaje" id="hud-pts">0 pts</div>
+          <div style="font-size:.6rem;color:var(--gris)">Combo: <span id="hud-combo">×0</span></div>
+          <div class="monedas-hud" style="justify-content:flex-end;font-size:.68rem;margin-top:.1rem">🪙<span id="hud-monedas">0</span></div>
+        </div>
+      </div>
+      <div class="jefe-panel" id="jefe-panel" style="display:none">
+        <div class="jefe-titulo">☠ ¡JEFE FINAL — EL GRAN OSCURO! ☠</div>
+        <div class="barra-jefe-cont"><div class="barra-jefe" id="barra-jefe" style="width:100%"></div></div>
+        <div style="font-size:.78rem;color:#ffaaaa" id="jefe-vida-txt">Vida: 3/3</div>
+        <div class="progreso-preguntas" id="circulos-jefe">
+          <div class="circulo-p circulo-pendiente">1</div>
+          <div class="circulo-p circulo-pendiente">2</div>
+          <div class="circulo-p circulo-pendiente">3</div>
+        </div>
+      </div>
+      <div class="arena" id="arena">
+        <div class="arena-floor"></div>
+        <div class="combatientes">
+          <div class="personaje-jugador" id="pj-cont"><span class="char-sprite" id="pj-sprite">🧙</span><div class="char-name" id="pj-name">MAGO</div><div class="char-hp-bar"><div class="char-hp-fill hp-alto" id="pj-hp" style="width:100%"></div></div></div>
+          <div class="vs-txt">VS</div>
+          <div class="enemigo-cont" id="enemy-cont"><span class="enemigo-sprite" id="enemy-sprite">👹</span><div class="enemy-name" id="enemy-name">OGRO</div><div class="char-hp-bar"><div class="char-hp-fill hp-alto" id="enemy-hp" style="width:100%"></div></div></div>
+        </div>
+      </div>
+      <div class="combo-badge" id="combo-badge">🔥 COMBO ×<span id="combo-num">0</span></div>
+      <div class="powerups-bar">
+        <button class="pu-btn pocion-btn" id="pu-pocion" onclick="usarPowerup('pocion')" title="Recupera 1 vida">🧪<span class="pu-label">Poción</span><div class="pu-count" id="cnt-pocion">2</div></button>
+        <button class="pu-btn escudo-btn" id="pu-escudo" onclick="usarPowerup('escudo')" title="Bloquea el próximo daño">🛡️<span class="pu-label">Escudo</span><div class="pu-count" id="cnt-escudo">1</div></button>
+        <button class="pu-btn" id="pu-5050" onclick="usarPowerup('5050')" title="Elimina 2 opciones incorrectas">✂️<span class="pu-label">50/50</span><div class="pu-count" id="cnt-5050">1</div></button>
+        <button class="pu-btn" id="pu-tiempo" onclick="usarPowerup('tiempo')" title="Añade 15 segundos">⏳<span class="pu-label">+Tiempo</span><div class="pu-count" id="cnt-tiempo">1</div></button>
+        <button class="pu-btn rayo-btn" id="pu-rayo" onclick="usarPowerup('rayo')" title="Daño doble en esta pregunta">⚡<span class="pu-label">Rayo</span><div class="pu-count" id="cnt-rayo">1</div></button>
+        <button class="pu-btn congelar-btn" id="pu-congelar" onclick="usarPowerup('congelar')" title="Congela el temporizador 10 seg">❄️<span class="pu-label">Hielo</span><div class="pu-count" id="cnt-congelar">1</div></button>
+        <button class="pu-btn ojo-btn" id="pu-ojo" onclick="usarPowerup('ojo')" title="Revela la respuesta correcta brevemente">👁️<span class="pu-label">Visión</span><div class="pu-count" id="cnt-ojo">1</div></button>
+      </div>
+      <div class="pregunta-panel">
+        <div class="pregunta-titulo" id="pregunta-titulo">⚔ ENEMIGO — Responde para derrotarlo</div>
+        <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+        <div class="pregunta-texto" id="pregunta-texto">Cargando...</div>
+        <div class="opciones-grid">
+          <button class="opcion-btn opcion-a" id="btn-op-0" onclick="responder(0)"><span class="letra-btn letra-a">A</span><span id="op-0">—</span></button>
+          <button class="opcion-btn opcion-b" id="btn-op-1" onclick="responder(1)"><span class="letra-btn letra-b">B</span><span id="op-1">—</span></button>
+          <button class="opcion-btn opcion-c" id="btn-op-2" onclick="responder(2)"><span class="letra-btn letra-c">C</span><span id="op-2">—</span></button>
+          <button class="opcion-btn opcion-d" id="btn-op-3" onclick="responder(3)"><span class="letra-btn letra-d">D</span><span id="op-3">—</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pantalla-fin" style="display:none">
+      <div style="font-size:4rem;margin-bottom:.4rem" id="fin-icono"></div>
+      <h1 id="fin-titulo" style="font-size:2rem;margin:.25rem 0;font-family:'Cinzel Decorative',cursive"></h1>
+      <p id="fin-sub" style="color:var(--gris);margin-bottom:.6rem;font-size:.88rem"></p>
+
+      <!-- TABS fin -->
+      <div class="fin-tabs">
+        <button class="fin-tab activo" id="ftab-stats" onclick="cambiarFinTab('stats')">📊 Resultados</button>
+        <button class="fin-tab" id="ftab-feedback" onclick="cambiarFinTab('feedback')">📚 Retroalimentación</button>
+        <button class="fin-tab" id="ftab-analisis" onclick="cambiarFinTab('analisis')">🧠 Análisis</button>
+      </div>
+
+      <!-- Panel estadísticas -->
+      <div class="fin-tab-panel activo" id="fpanel-stats">
+        <div class="fin-grid" id="fin-stats"></div>
+        <div id="fin-recompensas" style="margin:.8rem auto;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:.8rem 1.2rem;max-width:400px;font-size:.85rem;color:var(--oro);text-align:center;display:none"></div>
+      </div>
+
+      <!-- Panel retroalimentación -->
+      <div class="fin-tab-panel" id="fpanel-feedback">
+        <div class="feedback-section" id="feedback-lista"></div>
+      </div>
+
+      <!-- Panel análisis -->
+      <div class="fin-tab-panel" id="fpanel-analisis">
+        <div class="analisis-panel" id="analisis-panel"></div>
+      </div>
+
+      <div style="display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;margin-top:1rem">
+        <button class="btn btn-primary" onclick="reiniciarJuego()">▶ Jugar de Nuevo</button>
+        <button class="btn btn-secondary" onclick="mostrarPagina('leaderboard')">🏆 Ranking</button>
+        <button class="btn btn-secondary" onclick="mostrarPagina('perfil')" id="btn-ver-perfil" style="display:none">👤 Mi Perfil</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="pagina" id="pagina-leaderboard">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.7rem">
+    <h2 style="color:var(--oro);font-family:'Cinzel Decorative',cursive;font-size:1.1rem">🏆 Ranking Global</h2>
+    <button class="btn btn-sm btn-secondary" onclick="DB.refrescar().then(()=>cargarLeaderboard())" style="font-size:.68rem">🔄 Actualizar</button>
+  </div>
+  <div class="lb-tabs">
+    <button class="lb-tab activo" id="lb-tab-todos" onclick="filtrarLB('todos')">🌍 Global</button>
+    <button class="lb-tab" id="lb-tab-facil" onclick="filtrarLB('Fácil')">🟢 Fácil</button>
+    <button class="lb-tab" id="lb-tab-normal" onclick="filtrarLB('Normal')">🟡 Normal</button>
+    <button class="lb-tab" id="lb-tab-dificil" onclick="filtrarLB('Difícil')">🔴 Difícil</button>
+    <button class="lb-tab" id="lb-tab-victorias" onclick="filtrarLB('victorias')">🏅 Victorias</button>
+  </div>
+  <div id="lb-lista"></div>
+</div>
+
+<!-- TIENDA -->
+<div class="pagina" id="pagina-tienda">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+    <h2 style="color:var(--oro);font-family:'Cinzel Decorative',cursive;font-size:1.1rem">🛒 Tienda de Aventuras</h2>
+    <div class="tienda-balance">🪙 <span id="tienda-balance">0</span> monedas</div>
+  </div>
+  <div id="bonus-diario" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.25);border-radius:10px;padding:.7rem 1rem;margin-bottom:1rem;"></div>
+  <div class="tienda-seccion">
+    <h3>⚔ Héroes</h3>
+    <div class="tienda-grid" id="tienda-heroes"></div>
+  </div>
+  <div class="tienda-seccion">
+    <h3>⚡ Mejoras Permanentes</h3>
+    <div class="tienda-grid" id="tienda-mejoras"></div>
+  </div>
+  <div class="tienda-seccion">
+    <h3>🧪 Power-Ups Extra</h3>
+    <div class="tienda-grid" id="tienda-powerups"></div>
+  </div>
+  <div class="tienda-seccion">
+    <h3>✨ Cosméticos</h3>
+    <div class="tienda-grid" id="tienda-cosmeticos"></div>
+  </div>
+</div>
+
+<!-- PERFIL -->
+<div class="pagina" id="pagina-perfil">
+  <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap">
+    <div style="font-size:2.5rem" id="perfil-avatar">🧙</div>
+    <div>
+      <h2 style="color:var(--oro);font-family:'Cinzel Decorative',cursive;font-size:1rem" id="perfil-nombre">—</h2>
+      <div style="color:var(--gris);font-size:.78rem" id="perfil-clase">Clase: —</div>
+      <div style="color:var(--oro);font-size:.82rem;margin-top:.2rem" id="perfil-monedas">🪙 0 monedas</div>
+    </div>
+    <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="cerrarSesion()">↩ Salir</button>
+  </div>
+  <div class="stats-grid" id="perfil-stats"></div>
+  <div class="barra-precision" style="margin-bottom:.2rem"><div class="barra-fill" id="barra-prec" style="width:0%"></div></div>
+  <div style="font-size:.73rem;color:var(--gris);margin-bottom:1.2rem">Precisión global: <span id="prec-txt">—</span></div>
+  <div class="seccion-titulo">📜 Últimas Partidas</div>
+  <div style="overflow-x:auto">
+    <table class="tabla-hist">
+      <thead><tr><th>Fecha</th><th>Dif.</th><th>Sala</th><th>Pts</th><th>✓</th><th>%</th><th>Result.</th></tr></thead>
+      <tbody id="historial-tbody"><tr><td colspan="7" style="text-align:center;color:var(--gris);padding:1.8rem">Sin partidas aún</td></tr></tbody>
+    </table>
+  </div>
+  <div class="seccion-titulo" style="margin-top:1.6rem">🏅 Mis Logros</div>
+  <div class="logros-grid" id="logros-grid"></div>
+</div>
+
+<!-- ADMIN -->
+<div class="pagina" id="pagina-admin">
+  <div class="admin-panel">
+    <div class="admin-titulo">🔐 PANEL DE ADMINISTRACIÓN</div>
+    <div style="background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:.65rem 1rem;margin-bottom:.9rem;font-size:.76rem;color:var(--oro)">
+      🌐 Datos guardados localmente en este navegador. Si hay nube disponible, se sincronizan entre dispositivos.
+    </div>
+    <div class="admin-stats" id="admin-stats"></div>
+    <input class="admin-search" id="admin-buscar" placeholder="🔍 Buscar usuario..." oninput="renderAdminTabla()">
+    <div style="overflow-x:auto">
+      <table class="admin-tabla">
+        <thead><tr><th>Usuario</th><th>Email</th><th>Clase</th><th>Niv.</th><th>Pts</th><th>Partidas</th><th>Victorias</th><th>🪙</th><th>Acción</th></tr></thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:.9rem;display:flex;gap:.55rem;flex-wrap:wrap">
+      <button class="btn btn-sm btn-danger" onclick="exportarDatos()">📥 Exportar JSON</button>
+      <button class="btn btn-sm btn-secondary" onclick="cargarAdmin()">🔄 Refrescar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════
+function id(s){return document.getElementById(s)}
+
+// ═══════════════════════════════════════════
+// DB — localStorage primario + window.storage opcional
+// ═══════════════════════════════════════════
+const DB={
+  _cache:{usuarios:null,partidas:null},
+  _hasCloudStorage:false,
+
+  // ── helpers de almacenamiento ──────────────
+  _lsGet(key){try{const v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}},
+  _lsSet(key,val){try{localStorage.setItem(key,JSON.stringify(val));return true;}catch(e){return false;}},
+  async _cloudGet(key){
+    try{if(!DB._hasCloudStorage)return null;const r=await window.storage.get(key,true);return r?JSON.parse(r.value):null;}catch(e){return null;}
+  },
+  async _cloudSet(key,val){
+    try{if(!DB._hasCloudStorage)return false;await window.storage.set(key,JSON.stringify(val),true);return true;}catch(e){return false;}
+  },
+
+  // ── merge: la nube gana si tiene más datos ─
+  _merge(local,cloud){
+    if(!cloud||!Array.isArray(cloud))return local||[];
+    if(!local||!Array.isArray(local))return cloud;
+    // combinar por username/id único
+    const map=new Map();
+    local.forEach(x=>map.set(x.username||x.id||JSON.stringify(x),x));
+    cloud.forEach(x=>{
+      const k=x.username||x.id||JSON.stringify(x);
+      if(!map.has(k))map.set(k,x);
+      else{
+        // para partidas sin username como clave, la nube gana
+        const existing=map.get(k);
+        // elegir el que tenga más datos (más campos)
+        if(Object.keys(x).length>=Object.keys(existing).length)map.set(k,{...existing,...x});
+      }
+    });
+    return Array.from(map.values());
+  },
+
+  async init(){
+    id('db-loading').classList.remove('oculto');
+    id('db-loading-msg').textContent='Cargando datos locales...';
+
+    // Detectar si window.storage existe
+    DB._hasCloudStorage=typeof window!=='undefined'&&typeof window.storage==='object'&&window.storage!==null&&typeof window.storage.get==='function';
+
+    // 1. Cargar desde localStorage (siempre disponible)
+    let localU=DB._lsGet('da_usuarios')||[];
+    let localP=DB._lsGet('da_partidas')||[];
+
+    // 2. Intentar cargar desde nube y hacer merge
+    if(DB._hasCloudStorage){
+      id('db-loading-msg').textContent='Sincronizando con la nube...';
+      try{
+        const cloudU=await DB._cloudGet('da_usuarios');
+        const cloudP=await DB._cloudGet('da_partidas');
+        localU=DB._merge(localU,cloudU);
+        localP=DB._merge(localP,cloudP);
+        // Guardar el merge en local
+        DB._lsSet('da_usuarios',localU);
+        DB._lsSet('da_partidas',localP);
+      }catch(e){}
+    }
+
+    DB._cache.usuarios=localU;
+    DB._cache.partidas=localP;
+    id('db-loading').classList.add('oculto');
+    setSyncStatus(DB._hasCloudStorage?'online':'local');
+  },
+
+  getUsuarios(){return DB._cache.usuarios||[]},
+  getPartidas(){return DB._cache.partidas||[]},
+
+  async setUsuarios(u){
+    DB._cache.usuarios=u;
+    DB._lsSet('da_usuarios',u);
+    setSyncStatus('syncing');
+    const ok=await DB._cloudSet('da_usuarios',u);
+    setSyncStatus(ok?'online':'local');
+  },
+  async setPartidas(p){
+    DB._cache.partidas=p;
+    DB._lsSet('da_partidas',p);
+    setSyncStatus('syncing');
+    const ok=await DB._cloudSet('da_partidas',p);
+    setSyncStatus(ok?'online':'local');
+  },
+
+  getUsuario(u){return DB.getUsuarios().find(x=>x.username===u)},
+
+  async actualizarUsuario(username,cambios){
+    const us=DB.getUsuarios(),idx=us.findIndex(u=>u.username===username);
+    if(idx>=0){us[idx]={...us[idx],...cambios};await DB.setUsuarios(us);return us[idx];}return null;
+  },
+  async agregarPartida(p){
+    const ps=DB.getPartidas();ps.unshift(p);if(ps.length>600)ps.splice(600);await DB.setPartidas(ps);
+  },
+  partidasDeUsuario(u){return DB.getPartidas().filter(p=>p.username===u)},
+
+  async refrescar(){
+    setSyncStatus('syncing');
+    // Siempre recarga local (instantáneo)
+    const localU=DB._lsGet('da_usuarios');
+    const localP=DB._lsGet('da_partidas');
+    if(localU)DB._cache.usuarios=localU;
+    if(localP)DB._cache.partidas=localP;
+    // Luego intenta nube
+    if(DB._hasCloudStorage){
+      try{
+        const cloudU=await DB._cloudGet('da_usuarios');
+        const cloudP=await DB._cloudGet('da_partidas');
+        if(cloudU){DB._cache.usuarios=DB._merge(DB._cache.usuarios,cloudU);DB._lsSet('da_usuarios',DB._cache.usuarios);}
+        if(cloudP){DB._cache.partidas=DB._merge(DB._cache.partidas,cloudP);DB._lsSet('da_partidas',DB._cache.partidas);}
+        setSyncStatus('online');return true;
+      }catch(e){setSyncStatus('local');return false;}
+    }
+    setSyncStatus('local');return true;
+  }
+};
+
+function setSyncStatus(status){
+  const badge=id('sync-badge'),dot=id('sync-dot'),txt=id('sync-txt');
+  badge.className='sync-badge '+(status==='local'?'offline':status);
+  dot.className='sync-dot'+(status==='syncing'?' pulse':'');
+  txt.textContent={online:'🌐 Sincronizado',offline:'Sin conexión',syncing:'Sincronizando...',local:'💾 Guardado local'}[status]||status;
+}
+
+// ═══════════════════════════════════════════
+// CONSTANTES DE JUEGO
+// ═══════════════════════════════════════════
+const ADMIN_USER='admin',ADMIN_PASS='DungeonAdmin2024!';
+
+const PERSONAJES={
+  mago:    {sprite:'🧙',nombre:'MAGO',     multVelocidad:1.15,precio:0},
+  guerrero:{sprite:'🛡️',nombre:'GUERRERO', bonusVida:1,      precio:0},
+  arquero: {sprite:'🏹',nombre:'ARQUERO',  multVelocidad:1.20,precio:500},
+  necro:   {sprite:'💀',nombre:'NIGROMANTE',multCombo:1.25,  precio:800},
+  dragon:  {sprite:'🐉',nombre:'DRAGÓN',   dobleDañoJefe:true,precio:1200},
+  angel:   {sprite:'😇',nombre:'ÁNGEL',    revivir:true,     precio:1500},
+};
+
+const TODOS_ENEMIGOS=[
+  {sprite:'🐀',nombre:'RATA GIGANTE',hp:1},{sprite:'👺',nombre:'GOBLIN',hp:1},
+  {sprite:'🧟',nombre:'ZOMBIE',hp:2},{sprite:'💀',nombre:'ESQUELETO',hp:2},
+  {sprite:'🦇',nombre:'VAMPIRO',hp:2},{sprite:'🐺',nombre:'LICÁNTROPO',hp:3},
+  {sprite:'🧌',nombre:'TROLL',hp:3},{sprite:'🦂',nombre:'ESCORPIÓN',hp:3},
+  {sprite:'🐉',nombre:'DRAGÓN JOVEN',hp:4},{sprite:'🔮',nombre:'BRUJO OSCURO',hp:4},
+];
+const ENEMIGOS_SALA=[[0,1],[1,2,3],[3,4,5],[5,6,7],[7,8,9]];
+const JEFE={sprite:'👿',nombre:'GRAN OSCURO',hp:3};
+
+// ─── TIENDA ────────────────────────────────
+const TIENDA_HEROES=[
+  {id:'arquero', nombre:'Arquero Veloz',   sprite:'🏹', precio:500,  desc:'Bonificación +20% pts por velocidad de respuesta'},
+  {id:'necro',   nombre:'Nigromante',      sprite:'💀', precio:800,  desc:'Combos multiplican puntos un 25% más'},
+  {id:'dragon',  nombre:'Dragón Legendario',sprite:'🐉',precio:1200, desc:'Daño doble contra el jefe final'},
+  {id:'angel',   nombre:'Ángel Guardián',  sprite:'😇', precio:1500, desc:'Revive una vez por partida automáticamente'},
+];
+const TIENDA_MEJORAS=[
+  {id:'mejora_combo',  nombre:'Maestro del Combo',  sprite:'🔥', precio:300,  desc:'El multiplicador de combo sube 0.1 más por respuesta correcta',  max:1},
+  {id:'mejora_tiempo', nombre:'Velocista',           sprite:'⚡', precio:250,  desc:'5 segundos extra en cada pregunta',                              max:1},
+  {id:'mejora_vida',   nombre:'Corazón de Dragón',  sprite:'❤️', precio:400,  desc:'+1 vida máxima en todas las partidas',                           max:1},
+  {id:'mejora_monedas',nombre:'Alquimista',          sprite:'⚗️', precio:350,  desc:'Gana 20% más monedas de oro en cada partida',                   max:1},
+  {id:'mejora_puntaje',nombre:'Amuleto Arcano',      sprite:'💠', precio:600,  desc:'+10% puntos en todas las respuestas correctas',                  max:1},
+  {id:'mejora_rayo',   nombre:'Maestro del Rayo',    sprite:'🌩️', precio:450,  desc:'Empieza cada partida con 2 rayos en vez de 1',                   max:1},
+];
+const TIENDA_POWERUPS=[
+  {id:'pu_pocion_extra',  nombre:'Pociones x3',     sprite:'🧪', precio:150, desc:'Empieza con 3 pociones en vez de 2',    max:1},
+  {id:'pu_escudo_extra',  nombre:'Escudos x2',      sprite:'🛡️', precio:200, desc:'Empieza con 2 escudos en vez de 1',    max:1},
+  {id:'pu_5050_extra',    nombre:'50/50 x2',        sprite:'✂️', precio:180, desc:'Empieza con 2 comodines 50/50',        max:1},
+  {id:'pu_tiempo_extra',  nombre:'+Tiempo x2',      sprite:'⏳', precio:160, desc:'Empieza con 2 poderes de tiempo',      max:1},
+  {id:'pu_hielo_extra',   nombre:'Hielo x3',        sprite:'❄️', precio:220, desc:'Empieza con 3 poderes de congelar',    max:1},
+  {id:'pu_vision_extra',  nombre:'Visión x2',       sprite:'👁️', precio:280, desc:'Empieza con 2 poderes de visión',     max:1},
+];
+const TIENDA_COSMETICOS=[
+  {id:'titulo_maestro',   nombre:'Título: Maestro',    sprite:'👑', precio:800,  desc:'Muestra "Maestro" junto a tu nombre en el ranking'},
+  {id:'titulo_leyenda',   nombre:'Título: Leyenda',    sprite:'🌟', precio:1800, desc:'Muestra "Leyenda" junto a tu nombre en el ranking'},
+  {id:'frame_dorado',     nombre:'Marco Dorado',       sprite:'🖼️',precio:500,  desc:'Marco especial en tu avatar del ranking'},
+];
+
+// ─── LOGROS ────────────────────────────────
+const LOGROS=[
+  {icono:'🏅',nombre:'Primera Victoria',    desc:'Gana tu primera mazmorra',          xp:100, monedas:200, ok:u=>u.partidas_ganadas>=1},
+  {icono:'🔥',nombre:'Combo ×5',            desc:'Alcanza un combo de 5',              xp:150, monedas:150, ok:u=>u.combo_maximo>=5},
+  {icono:'💥',nombre:'Combo ×10',           desc:'Alcanza un combo de 10',             xp:300, monedas:300, ok:u=>u.combo_maximo>=10},
+  {icono:'🧮',nombre:'Matemático',          desc:'Gana 5 partidas',                    xp:200, monedas:250, ok:u=>u.partidas_ganadas>=5},
+  {icono:'🎓',nombre:'Maestro',             desc:'Gana 10 partidas',                   xp:500, monedas:500, ok:u=>u.partidas_ganadas>=10},
+  {icono:'💰',nombre:'Milpuntos',           desc:'Acumula 1000 pts en total',          xp:250, monedas:200, ok:u=>u.puntaje_total>=1000},
+  {icono:'🏆',nombre:'Leyenda',             desc:'Acumula 10 000 pts en total',        xp:1000,monedas:1000,ok:u=>u.puntaje_total>=10000},
+  {icono:'⭐',nombre:'Nivel 5',             desc:'Sube al nivel 5',                    xp:300, monedas:300, ok:u=>u.nivel>=5},
+  {icono:'🌟',nombre:'Nivel 10',            desc:'Sube al nivel 10',                   xp:600, monedas:600, ok:u=>u.nivel>=10},
+  {icono:'🛡️',nombre:'Invencible',          desc:'Gana sin perder ninguna vida',       xp:400, monedas:400, ok:(u,ps)=>(ps||[]).some(p=>p.gano&&p.incorrectas===0)},
+  {icono:'💎',nombre:'Coleccionista',       desc:'Compra 3 ítems en la tienda',        xp:200, monedas:200, ok:u=>(u.compras||[]).length>=3},
+  {icono:'⚡',nombre:'Velocista',           desc:'Responde en menos de 5 seg (10 veces)',xp:350,monedas:350,ok:u=>(u.respuestasRapidas||0)>=10},
+  {icono:'🌍',nombre:'Explorador',          desc:'Completa 20 partidas',               xp:400, monedas:400, ok:u=>u.partidas_jugadas>=20},
+];
+
+// BANCO DE PREGUNTAS AMPLIADO v6
+const BANCO={
+  'Fácil':[
+    {p:"¿Cuánto es 3 + 5?",ops:["6","7","8","9"],r:2},
+    {p:"¿Cuánto es 9 - 6?",ops:["1","2","3","4"],r:2},
+    {p:"¿Cuánto es 5 × 2?",ops:["8","9","10","11"],r:2},
+    {p:"¿Cuánto es 10 ÷ 2?",ops:["4","5","6","7"],r:1},
+    {p:"¿Cuántos lados tiene un triángulo?",ops:["2","3","4","5"],r:1},
+    {p:"¿Cuántos días tiene febrero (año normal)?",ops:["28","29","30","31"],r:0},
+    {p:"¿Cuánto es 6 + 7?",ops:["11","12","13","14"],r:2},
+    {p:"¿Cuánto es 4 × 3?",ops:["10","11","12","13"],r:2},
+    {p:"¿Cuántas patas tiene una araña?",ops:["6","7","8","9"],r:2},
+    {p:"¿Cuánto es 20 ÷ 4?",ops:["4","5","6","7"],r:1},
+    {p:"¿Cuánto es 15 - 8?",ops:["5","6","7","8"],r:2},
+    {p:"¿Cuánto es 2 × 9?",ops:["16","17","18","19"],r:2},
+    {p:"¿Cuánto es 7 + 8?",ops:["13","14","15","16"],r:2},
+    {p:"¿Cuánto es 3 × 7?",ops:["18","19","21","22"],r:2},
+    {p:"¿Cuánto es 50 ÷ 10?",ops:["3","4","5","6"],r:2},
+    {p:"¿Cuánto es 100 - 37?",ops:["53","63","73","83"],r:1},
+    {p:"¿Cuántos meses tiene un año?",ops:["10","11","12","13"],r:2},
+    {p:"¿Cuánto es 8 × 2?",ops:["14","15","16","17"],r:2},
+    {p:"¿Cuánto es 35 - 17?",ops:["16","17","18","19"],r:2},
+    {p:"¿Cuánto es 9 + 9?",ops:["16","17","18","19"],r:2},
+    {p:"¿Cuánto es 24 ÷ 6?",ops:["3","4","5","6"],r:1},
+    {p:"¿Cuánto es 11 + 13?",ops:["22","23","24","25"],r:2},
+    {p:"¿Cuánto es 6 × 6?",ops:["30","32","36","40"],r:2},
+    {p:"¿Cuánto es 45 - 20?",ops:["20","23","25","28"],r:2},
+    {p:"¿Cuánto es 3 + 4 + 5?",ops:["10","11","12","13"],r:2},
+    {p:"¿Cuántos lados tiene un hexágono?",ops:["4","5","6","7"],r:2},
+    {p:"¿Cuánto es 7 × 4?",ops:["24","26","28","30"],r:2},
+    {p:"¿Cuánto es 81 ÷ 9?",ops:["7","8","9","10"],r:2},
+    {p:"¿Cuánto es 13 + 14?",ops:["25","26","27","28"],r:2},
+    {p:"¿Cuánto es la mitad de 50?",ops:["20","22","25","30"],r:2},
+    {p:"¿Cuánto es 5 × 5?",ops:["20","23","25","27"],r:2},
+    {p:"¿Cuántos ángulos tiene un rectángulo?",ops:["2","3","4","5"],r:2},
+    {p:"¿Cuánto es 40 + 35?",ops:["70","72","75","80"],r:2},
+    {p:"¿Cuánto es 100 ÷ 5?",ops:["15","18","20","25"],r:2},
+    {p:"¿Cuánto es 9 × 3?",ops:["24","25","27","30"],r:2},
+  ],
+  'Normal':[
+    {p:"¿Cuánto es 12 × 3?",ops:["24","30","36","42"],r:2},
+    {p:"¿Raíz cuadrada de 49?",ops:["6","7","8","9"],r:1},
+    {p:"¿Cuánto es (8+4)×2?",ops:["20","22","24","26"],r:2},
+    {p:"¿Cuánto es 7×8?",ops:["54","56","58","60"],r:1},
+    {p:"¿Cuánto es (6²)÷3?",ops:["10","11","12","13"],r:2},
+    {p:"¿Cuánto es 80÷8?",ops:["8","9","10","11"],r:2},
+    {p:"¿Cuánto es (5×6)+(3×2)?",ops:["30","32","33","36"],r:3},
+    {p:"¿Cuánto es (9×9)-9?",ops:["70","72","81","90"],r:1},
+    {p:"¿Cuánto es 25% de 200?",ops:["40","45","50","55"],r:2},
+    {p:"¿Si x+12=20, cuánto es x?",ops:["6","7","8","9"],r:2},
+    {p:"¿Raíz cuadrada de 121?",ops:["9","10","11","12"],r:2},
+    {p:"¿Cuánto es (15+10)×2?",ops:["40","45","50","55"],r:3},
+    {p:"¿Cuánto es 3³?",ops:["9","18","27","36"],r:2},
+    {p:"¿Cuánto es 144÷12?",ops:["10","11","12","13"],r:2},
+    {p:"¿50% de 340?",ops:["150","160","170","180"],r:2},
+    {p:"¿Si 2x-4=10, cuánto es x?",ops:["5","6","7","8"],r:2},
+    {p:"¿Cuánto es (4²)+(3²)?",ops:["20","24","25","30"],r:2},
+    {p:"¿Cuánto es 75% de 80?",ops:["55","60","65","70"],r:1},
+    {p:"¿Si x/3=9, cuánto es x?",ops:["18","24","27","30"],r:2},
+    {p:"¿Cuánto es 11²?",ops:["111","121","131","141"],r:1},
+    {p:"¿Cuánto es 250÷5?",ops:["40","45","50","55"],r:2},
+    {p:"¿Cuánto es 8+9×2?",ops:["24","26","28","30"],r:1},
+    {p:"¿Cuánto es 15% de 400?",ops:["40","50","60","70"],r:2},
+    {p:"¿Cuánto es (3+4)²?",ops:["42","49","56","64"],r:1},
+    {p:"¿Si 4x=36, cuánto es x?",ops:["7","8","9","10"],r:2},
+    {p:"¿Cuánto es 20% de 350?",ops:["60","65","70","75"],r:2},
+    {p:"¿Cuánto es 2⁴?",ops:["8","12","16","24"],r:2},
+    {p:"¿Cuánto es 48÷4+6?",ops:["16","18","20","22"],r:1},
+    {p:"¿Área de un cuadrado de lado 9?",ops:["18","27","72","81"],r:3},
+    {p:"¿Cuánto es 120÷(4×5)?",ops:["4","5","6","7"],r:2},
+    {p:"¿Cuánto es 13×7?",ops:["81","84","91","98"],r:2},
+    {p:"¿Cuánto es 5²-3²?",ops:["8","12","16","22"],r:2},
+    {p:"¿Cuánto es 30% de 250?",ops:["65","70","75","80"],r:2},
+    {p:"¿Si 3x+6=21, cuánto es x?",ops:["3","4","5","6"],r:2},
+    {p:"¿Cuánto es (10-3)×(10+3)?",ops:["61","77","91","99"],r:2},
+  ],
+  'Difícil':[
+    {p:"¿Cuánto es 25×12?",ops:["200","250","300","350"],r:2},
+    {p:"¿Cuánto es 3²+4²?",ops:["20","24","25","30"],r:2},
+    {p:"¿Cuánto es (6+2)³?",ops:["256","512","728","1000"],r:1},
+    {p:"¿Cuánto es 7³?",ops:["243","324","343","512"],r:2},
+    {p:"¿Cuánto es 2⁵×3?",ops:["48","72","96","128"],r:2},
+    {p:"¿Si 5x=20, cuánto es x?",ops:["2","3","4","5"],r:3},
+    {p:"¿Cuánto es 2⁸?",ops:["128","256","512","1024"],r:1},
+    {p:"¿Hipotenusa de catetos 3 y 4?",ops:["4","5","6","7"],r:1},
+    {p:"¿Cuánto es log₁₀(1000)?",ops:["2","3","4","10"],r:1},
+    {p:"¿Cuánto es 15% de 300?",ops:["40","45","50","55"],r:1},
+    {p:"¿Cuánto es (8×9)-(5×7)?",ops:["26","27","28","29"],r:1},
+    {p:"¿Cuánto es 14²-4²?",ops:["180","184","192","200"],r:0},
+    {p:"¿Cuánto es ∛27?",ops:["2","3","4","9"],r:1},
+    {p:"¿Cuánto es sen²(x)+cos²(x)?",ops:["0","1","2","π"],r:1},
+    {p:"¿Cuánto es log₂(32)?",ops:["4","5","6","8"],r:1},
+    {p:"¿Cuánto es 5! (factorial)?",ops:["60","100","120","150"],r:2},
+    {p:"¿Raíz cuadrada de 625?",ops:["20","22","24","25"],r:3},
+    {p:"¿Si 3x+5=20, cuánto es x?",ops:["4","5","6","7"],r:1},
+    {p:"¿Cuánto es 2¹⁰?",ops:["512","1000","1024","2048"],r:2},
+    {p:"¿Cuánto es 1/3 + 1/6?",ops:["1/4","1/2","2/3","3/4"],r:1},
+    {p:"¿Cuántos vértices tiene un cubo?",ops:["6","7","8","12"],r:2},
+    {p:"¿Cuánto es ⌊π²⌋?",ops:["8","9","10","11"],r:1},
+    {p:"¿Cuánto es 6! (factorial)?",ops:["360","480","600","720"],r:3},
+    {p:"¿Cuánto es log₁₀(0.1)?",ops:["-2","-1","0","1"],r:1},
+    {p:"¿Si x²=144, cuánto es x (positivo)?",ops:["11","12","13","14"],r:1},
+    {p:"¿Cuánto es 3⁴?",ops:["27","54","81","108"],r:2},
+    {p:"¿Cuánto es 4! + 3!?",ops:["24","28","30","36"],r:2},
+    {p:"¿Área de un círculo con radio 5? (use π≈3)",ops:["60","65","70","75"],r:3},
+    {p:"¿Cuánto es (2³)²?",ops:["12","32","48","64"],r:3},
+    {p:"¿Si x³=125, cuánto es x?",ops:["3","4","5","6"],r:2},
+    {p:"¿Cuánto es 2¹²?",ops:["2048","4096","8192","16384"],r:1},
+    {p:"¿Perímetro de un hexágono regular de lado 7?",ops:["35","40","42","48"],r:2},
+    {p:"¿Cuánto es log₂(64)?",ops:["4","5","6","7"],r:2},
+    {p:"¿Cuánto es (1/2)³?",ops:["1/4","1/6","1/8","1/16"],r:2},
+    {p:"¿Cuánto es 11×13 usando diferencia de cuadrados?",ops:["121","131","143","153"],r:2},
+  ],
+};
+
+function barajar(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function cargarBanco(dif){E.banco={lista:barajar(BANCO[dif]),indice:0};}
+function siguientePregunta(){
+  if(E.banco.indice>=E.banco.lista.length)cargarBanco(E.dificultad);
+  const q=E.banco.lista[E.banco.indice++];
+  return{pregunta:q.p,opciones:[...q.ops],respuesta_idx:q.r};
+}
+
+// ═══════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════
+const E={
+  usuario:null,personaje:'mago',
+  dificultad:'Normal',sala:1,
+  vidas:3,vidasMax:3,
+  puntaje:0,combo:0,comboMax:0,
+  correctas:0,incorrectas:0,
+  preguntaActual:null,bloqueado:false,
+  timerID:null,tiempoRestante:30,tiempoInicio:0,
+  esFaseJefe:false,jefeVida:3,jefePreguntaNum:0,jefeRespuestas:[],
+  banco:null,escudoActivo:false,
+  revivirUsado:false,
+  rayoActivo:false,timerCongelado:false,
+  powerups:{pocion:2,escudo:1,'5050':1,tiempo:1,rayo:1,congelar:1,ojo:1},
+  enemigoHp:1,enemigoHpMax:1,enemigoActual:null,
+  partidaInicio:0,
+  monedasGanadas:0,
+  respuestasRapidas:0,
+  historialRespuestas:[], // { pregunta, opciones, respuesta_idx, elegida_idx, ok }
+};
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+function abrirLogin(){id('modal-login').classList.add('abierto')}
+function cerrarModal(){id('modal-login').classList.remove('abierto')}
+function cambiarTab(t){
+  ['login','registro'].forEach(x=>{
+    id('tab-'+x).classList.toggle('activo',x===t);
+    id('form-'+x).style.display=x===t?'block':'none';
+  });
+  id('modal-titulo').textContent=t==='login'?'Bienvenido de vuelta':'Crea tu cuenta';
+}
+
+async function hacerLogin(){
+  const u=id('l-usuario').value.trim(),p=id('l-pass').value,err=id('error-login');
+  err.style.display='none';
+  if(!u||!p){err.textContent='Completa todos los campos.';err.style.display='block';return}
+  if(u===ADMIN_USER&&p===ADMIN_PASS){
+    await DB.refrescar();
+    E.usuario={username:ADMIN_USER,esAdmin:true,clase:'mago',nivel:99,puntaje_total:0,xp_total:0,partidas_jugadas:0,partidas_ganadas:0,combo_maximo:0,monedas:0,compras:[],logros:[]};
+    actualizarUI();cerrarModal();notif('👑 Bienvenido, Administrador');return;
+  }
+  await DB.refrescar();
+  const user=DB.getUsuario(u);
+  if(!user){err.textContent='Usuario no encontrado.';err.style.display='block';return}
+  if(user.password!==btoa(p)){err.textContent='Contraseña incorrecta.';err.style.display='block';return}
+  E.usuario=user;
+  // Guardar sesión en localStorage
+  try{localStorage.setItem('da_session',JSON.stringify({username:u,token:btoa(u+':'+p)}));}catch(e){}
+  actualizarUI();cerrarModal();notif(`⚔ Bienvenido, ${u}!`);
+}
+
+async function hacerRegistro(){
+  const u=id('r-usuario').value.trim(),em=id('r-email').value.trim(),p=id('r-pass').value,p2=id('r-pass2').value,err=id('error-registro');
+  err.style.display='none';
+  if(!u||!em||!p||!p2){err.textContent='Completa todos los campos.';err.style.display='block';return}
+  if(!/^[a-zA-Z0-9_\-\.]{3,20}$/.test(u)){err.textContent='Usuario: 3-20 caracteres, sin espacios.';err.style.display='block';return}
+  if(!/\S+@\S+\.\S+/.test(em)){err.textContent='Email inválido.';err.style.display='block';return}
+  if(p!==p2){err.textContent='Las contraseñas no coinciden.';err.style.display='block';return}
+  if(p.length<6){err.textContent='Mínimo 6 caracteres.';err.style.display='block';return}
+  if(u===ADMIN_USER){err.textContent='Nombre no disponible.';err.style.display='block';return}
+  await DB.refrescar();
+  if(DB.getUsuario(u)){err.textContent='Ese usuario ya existe.';err.style.display='block';return}
+  const nuevoUsuario={username:u,email:em,password:btoa(p),clase:'mago',nivel:1,puntaje_total:0,xp_total:0,partidas_jugadas:0,partidas_ganadas:0,combo_maximo:0,monedas:100,compras:[],logros:[],respuestasRapidas:0,fecha_registro:new Date().toISOString()};
+  const us=DB.getUsuarios();
+  us.push(nuevoUsuario);
+  await DB.setUsuarios(us);
+  // Auto-login inmediato
+  E.usuario=nuevoUsuario;
+  try{localStorage.setItem('da_session',JSON.stringify({username:u,token:btoa(u+':'+p)}));}catch(e){}
+  actualizarUI();cerrarModal();
+  notif(`🎉 ¡Bienvenido, ${u}! +100 🪙 de regalo`);
+  // Limpiar campos
+  id('r-usuario').value='';id('r-email').value='';id('r-pass').value='';id('r-pass2').value='';
+}
+
+function cerrarSesion(){
+  E.usuario=null;
+  try{localStorage.removeItem('da_session');}catch(e){}
+  actualizarUI();mostrarPagina('inicio');notif('Hasta pronto ⚔');
+}
+function actualizarUI(){
+  const log=!!E.usuario,btn=id('btn-sesion');
+  btn.textContent=log?`👤 ${E.usuario.username}`:'Iniciar Sesión';
+  btn.onclick=log?()=>mostrarPagina('perfil'):abrirLogin;
+  id('nav-perfil').style.display=log?'block':'none';
+  id('nav-tienda').style.display=log?'block':'none';
+  id('nav-admin').style.display=(log&&E.usuario.esAdmin)?'block':'none';
+  actualizarCharSelector();
+}
+
+// ═══════════════════════════════════════════
+// NAVEGACIÓN
+// ═══════════════════════════════════════════
+function mostrarPagina(pg){
+  if(pg==='perfil'&&!E.usuario){abrirLogin();return}
+  if(pg==='admin'&&(!E.usuario||!E.usuario.esAdmin)){notif('Acceso denegado','error');return}
+  if(pg==='tienda'&&!E.usuario){abrirLogin();return}
+  document.querySelectorAll('.pagina').forEach(p=>p.classList.remove('activa'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  id('pagina-'+pg).classList.add('activa');
+  const navPgs=['inicio','jugar','leaderboard','tienda','perfil','admin'];
+  const btns=document.querySelectorAll('nav button');
+  // map nav index
+  const navMap={inicio:0,jugar:1,leaderboard:2,tienda:3,perfil:4,admin:5};
+  if(navMap[pg]!==undefined&&btns[navMap[pg]])btns[navMap[pg]].classList.add('active');
+  if(pg==='leaderboard')cargarLeaderboard();
+  if(pg==='perfil'&&E.usuario)cargarPerfil();
+  if(pg==='admin')cargarAdmin();
+  if(pg==='tienda')cargarTienda();
+}
+
+// ═══════════════════════════════════════════
+// SELECTOR DE PERSONAJE
+// ═══════════════════════════════════════════
+function actualizarCharSelector(){
+  const compras=E.usuario?.compras||[];
+  Object.keys(PERSONAJES).forEach(k=>{
+    const el=id('csopt-'+k);if(!el)return;
+    const pj=PERSONAJES[k];
+    const libre=pj.precio===0||compras.includes(k);
+    el.classList.toggle('bloqueado',!libre);
+    const lock=el.querySelector('.char-lock');
+    if(lock)lock.style.display=libre?'none':'block';
+  });
+}
+
+function seleccionarPersonaje(tipo,el){
+  const pj=PERSONAJES[tipo];
+  const compras=E.usuario?.compras||[];
+  if(pj.precio>0&&!compras.includes(tipo)){
+    notif(`🔒 Desbloquea "${pj.nombre}" en la Tienda`,'info');return;
+  }
+  E.personaje=tipo;
+  document.querySelectorAll('.char-opt').forEach(c=>c.classList.remove('seleccionado'));
+  el.classList.add('seleccionado');
+}
+
+function intentarPersonaje(tipo,el){
+  seleccionarPersonaje(tipo,el);
+}
+
+// ═══════════════════════════════════════════
+// TIENDA
+// ═══════════════════════════════════════════
+function cargarTienda(){
+  if(!E.usuario)return;
+  const ud=DB.getUsuario(E.usuario.username)||E.usuario;
+  const monedas=ud.monedas||0;
+  const compras=ud.compras||[];
+  id('tienda-balance').textContent=monedas.toLocaleString();
+
+  // Bonus diario
+  const hoy=new Date().toDateString();
+  const ultimoBonus=ud.ultimo_bonus;
+  const puedeCobrar=ultimoBonus!==hoy;
+  const bonusBanner=id('bonus-diario');
+  if(bonusBanner){
+    bonusBanner.style.display='block';
+    if(puedeCobrar){
+      bonusBanner.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;">
+        <div><strong style="color:var(--oro)">🎁 ¡Bonus diario disponible!</strong><br><span style="font-size:.73rem;color:var(--gris)">Recoge +50 🪙 por iniciar sesión hoy</span></div>
+        <button class="btn btn-primary btn-sm" onclick="cobrarBonus()">Cobrar 🪙50</button>
+      </div>`;
+    }else{
+      bonusBanner.innerHTML=`<div style="color:var(--gris);font-size:.78rem;text-align:center">✓ Bonus diario cobrado · Vuelve mañana por más 🪙</div>`;
+    }
+  }
+
+  const hacerItemHTML=(item,tipo)=>{
+    const comprado=compras.includes(item.id);
+    const puedePagar=monedas>=item.precio;
+    return `<div class="item-tienda ${comprado?'comprado':!puedePagar?'sin-fondos':''}">
+      <span class="item-sprite">${item.sprite}</span>
+      <div class="item-nombre">${item.nombre}</div>
+      <div class="item-desc">${item.desc}</div>
+      <div class="item-precio">🪙 ${item.precio}</div>
+      <button class="btn-comprar ${comprado?'ya-comprado':''}" onclick="comprar('${tipo}','${item.id}',${item.precio})" ${comprado?'disabled':''}>
+        ${comprado?'✓ Desbloqueado':'Comprar'}
+      </button>
+    </div>`;
+  };
+
+  id('tienda-heroes').innerHTML=TIENDA_HEROES.map(i=>hacerItemHTML(i,'hero')).join('');
+  id('tienda-mejoras').innerHTML=TIENDA_MEJORAS.map(i=>hacerItemHTML(i,'mejora')).join('');
+  id('tienda-powerups').innerHTML=TIENDA_POWERUPS.map(i=>hacerItemHTML(i,'powerup')).join('');
+  id('tienda-cosmeticos').innerHTML=TIENDA_COSMETICOS.map(i=>hacerItemHTML(i,'cosmetico')).join('');
+}
+
+async function cobrarBonus(){
+  if(!E.usuario)return;
+  const ud=DB.getUsuario(E.usuario.username);if(!ud)return;
+  const hoy=new Date().toDateString();
+  if(ud.ultimo_bonus===hoy){notif('Ya cobraste tu bonus hoy','info');return;}
+  // Calcular racha
+  const racha=(ud.racha_bonus||0)+1;
+  const bonus=50+Math.min(racha-1,6)*10; // 50 base + 10 por día de racha (max +60)
+  await DB.actualizarUsuario(ud.username,{monedas:(ud.monedas||0)+bonus,ultimo_bonus:hoy,racha_bonus:racha});
+  E.usuario=DB.getUsuario(ud.username);
+  notif(`🎁 ¡+${bonus} 🪙! Racha de ${racha} día${racha>1?'s':''}`,);
+  cargarTienda();
+}
+
+async function comprar(tipo,itemId,precio){
+  if(!E.usuario){notif('Inicia sesión primero','error');return}
+  await DB.refrescar();
+  const ud=DB.getUsuario(E.usuario.username);
+  if(!ud){return}
+  const monedas=ud.monedas||0;
+  const compras=ud.compras||[];
+  if(compras.includes(itemId)){notif('Ya tienes esto','info');return}
+  if(monedas<precio){notif(`🪙 Necesitas ${precio} monedas (tienes ${monedas})`,'error');return}
+  const nuevasCompras=[...compras,itemId];
+  await DB.actualizarUsuario(ud.username,{monedas:monedas-precio,compras:nuevasCompras});
+  E.usuario=DB.getUsuario(ud.username);
+  notif(`✅ ¡Comprado! 🪙 -${precio}`);
+  // Verificar logro coleccionista
+  await verificarLogros(false);
+  cargarTienda();
+  actualizarCharSelector();
+}
+
+// ═══════════════════════════════════════════
+// INICIAR PARTIDA
+// ═══════════════════════════════════════════
+function iniciarPartida(dif){
+  E.dificultad=dif;E.sala=1;
+  E.vidasMax=dif==='Difícil'?2:3;
+  if(E.personaje==='guerrero')E.vidasMax++;
+  // Mejora corazón de dragón
+  if(E.usuario&&(E.usuario.compras||[]).includes('mejora_vida'))E.vidasMax++;
+  E.vidas=E.vidasMax;
+  E.puntaje=0;E.combo=0;E.comboMax=0;
+  E.correctas=0;E.incorrectas=0;
+  E.bloqueado=false;
+  E.esFaseJefe=false;E.jefeVida=3;E.jefePreguntaNum=0;E.jefeRespuestas=[];
+  E.escudoActivo=false;E.revivirUsado=false;
+  E.rayoActivo=false;E.timerCongelado=false;
+  E.monedasGanadas=0;E.respuestasRapidas=0;
+  E.historialRespuestas=[];
+
+  // Power-ups base + mejoras compradas
+  const compras=E.usuario?.compras||[];
+  E.powerups={
+    pocion: compras.includes('pu_pocion_extra')?3:2,
+    escudo: compras.includes('pu_escudo_extra')?2:1,
+    '5050': compras.includes('pu_5050_extra')?2:1,
+    tiempo: compras.includes('pu_tiempo_extra')?2:1,
+    rayo: compras.includes('mejora_rayo')?(dif==='Difícil'?1:2):(dif==='Difícil'?0:1),
+    congelar: compras.includes('pu_hielo_extra')?3:(dif==='Fácil'?2:1),
+    ojo: compras.includes('pu_vision_extra')?2:(dif==='Difícil'?1:0),
+  };
+  E.partidaInicio=Date.now();
+  cargarBanco(dif);
+
+  ['pocion','escudo','5050','tiempo','rayo','congelar','ojo'].forEach(k=>{
+    const cnt=id('cnt-'+k),btn=id('pu-'+k);
+    if(cnt)cnt.textContent=E.powerups[k];
+    if(btn)btn.disabled=E.powerups[k]<=0;
+  });
+  const pj=PERSONAJES[E.personaje];
+  id('pj-sprite').textContent=pj.sprite;
+  id('pj-name').textContent=pj.nombre;
+
+  id('sel-dif-screen').style.display='none';
+  id('pantalla-pregunta').style.display='block';
+  id('pantalla-fin').style.display='none';
+  id('jefe-panel').style.display='none';
+
+  cargarEnemigo(E.sala);actualizarHUD();mostrarPregunta();
+}
+
+function reiniciarJuego(){
+  clearInterval(E.timerID);E.bloqueado=false;E.rayoActivo=false;E.timerCongelado=false;
+  id('pantalla-fin').style.display='none';
+  id('pantalla-pregunta').style.display='none';
+  id('sel-dif-screen').style.display='block';
+}
+
+// ═══════════════════════════════════════════
+// ENEMIGOS
+// ═══════════════════════════════════════════
+function cargarEnemigo(sala){
+  if(E.esFaseJefe){E.enemigoActual={...JEFE};}
+  else{
+    const pool=ENEMIGOS_SALA[Math.min(sala-1,4)];
+    E.enemigoActual={...TODOS_ENEMIGOS[pool[Math.floor(Math.random()*pool.length)]]};
+  }
+  E.enemigoHpMax=E.enemigoActual.hp;E.enemigoHp=E.enemigoActual.hp;
+  id('enemy-sprite').textContent=E.enemigoActual.sprite;
+  id('enemy-name').textContent=E.enemigoActual.nombre;
+  refrescarHpEnemigo();
+}
+function refrescarHpEnemigo(){
+  const pct=Math.max(0,E.enemigoHp/E.enemigoHpMax)*100;
+  const f=id('enemy-hp');f.style.width=pct+'%';
+  f.className='char-hp-fill '+(pct>55?'hp-alto':pct>25?'hp-medio':'hp-bajo');
+}
+
+// ═══════════════════════════════════════════
+// HUD
+// ═══════════════════════════════════════════
+function actualizarHUD(){
+  id('hud-vidas').innerHTML='❤'.repeat(E.vidas)+'🖤'.repeat(Math.max(0,E.vidasMax-E.vidas));
+  id('hud-sala').textContent=`Sala ${E.esFaseJefe?'JEFE':E.sala}/6`;
+  id('hud-dif').textContent=E.dificultad;
+  id('hud-pts').textContent=`${E.puntaje.toLocaleString()} pts`;
+  id('hud-combo').textContent=`×${E.combo}`;
+  if(id('hud-monedas'))id('hud-monedas').textContent=(E.usuario?.monedas||0)+(E.monedasGanadas||0);
+  const pct=E.vidas/E.vidasMax*100;
+  id('pj-hp').style.width=pct+'%';
+  id('pj-hp').className='char-hp-fill '+(pct>55?'hp-alto':pct>25?'hp-medio':'hp-bajo');
+  const cb=id('combo-badge');
+  if(E.combo>=2){cb.style.display='block';id('combo-num').textContent=E.combo;cb.style.animation='none';cb.getBoundingClientRect();cb.style.animation='comboPulso .3s ease-out';}
+  else cb.style.display='none';
+}
+
+// ═══════════════════════════════════════════
+// PREGUNTAS
+// ═══════════════════════════════════════════
+function mostrarPregunta(){
+  const q=E.preguntaActual=siguientePregunta();
+  id('pregunta-texto').textContent=q.pregunta;
+  q.opciones.forEach((op,i)=>{
+    id('op-'+i).textContent=op;
+    const btn=id('btn-op-'+i);btn.disabled=false;
+    btn.className=`opcion-btn opcion-${'abcd'[i]}`;
+  });
+  iniciarTimer();
+}
+
+function iniciarTimer(){
+  clearInterval(E.timerID);
+  let tl={'Fácil':30,'Normal':25,'Difícil':20}[E.dificultad]||25;
+  // Mejora velocista
+  if(E.usuario&&(E.usuario.compras||[]).includes('mejora_tiempo'))tl+=5;
+  E.tiempoRestante=tl;E.tiempoInicio=Date.now();
+  const fill=id('timer-fill');fill.className='timer-fill';fill.style.width='100%';fill.style.background='';
+  iniciarTimerDesde(tl);
+}
+
+function iniciarTimerDesde(tl){
+  clearInterval(E.timerID);
+  const fill=id('timer-fill');
+  E.timerID=setInterval(()=>{
+    if(E.timerCongelado)return;
+    const elapsed=(Date.now()-E.tiempoInicio)/1000;
+    const pct=Math.max(0,(1-elapsed/tl)*100);
+    E.tiempoRestante=Math.max(0,tl-elapsed);
+    fill.style.width=pct+'%';
+    if(pct<25&&!E.timerCongelado)fill.classList.add('urgente');
+    if(pct<=0){clearInterval(E.timerID);if(!E.bloqueado)responder(-1);}
+  },80);
+}
+
+// ═══════════════════════════════════════════
+// POWER-UPS
+// ═══════════════════════════════════════════
+function usarPowerup(tipo){
+  if(E.powerups[tipo]<=0||E.bloqueado)return;
+  E.powerups[tipo]--;
+  const cnt=id('cnt-'+tipo),btn=id('pu-'+tipo);
+  if(cnt)cnt.textContent=E.powerups[tipo];
+  if(E.powerups[tipo]<=0&&btn)btn.disabled=true;
+
+  if(tipo==='pocion'){
+    if(E.vidas>=E.vidasMax){
+      notif('❤ Ya tienes vida completa','info');
+      E.powerups[tipo]++;if(cnt)cnt.textContent=E.powerups[tipo];if(btn)btn.disabled=false;return;
+    }
+    E.vidas=Math.min(E.vidasMax,E.vidas+1);notif('🧪 ¡Vida recuperada! +1❤');
+  }else if(tipo==='escudo'){
+    E.escudoActivo=true;notif('🛡️ ¡Escudo activo! Próximo daño bloqueado');
+  }else if(tipo==='5050'){
+    const q=E.preguntaActual;
+    const incorrectas=[0,1,2,3].filter(i=>i!==q.respuesta_idx);
+    barajar(incorrectas).slice(0,2).forEach(i=>{
+      const b=id('btn-op-'+i);if(b){b.disabled=true;b.style.opacity='.2';}
+    });
+    notif('✂️ ¡50/50! Se eliminaron 2 opciones incorrectas');
+  }else if(tipo==='tiempo'){
+    E.tiempoInicio-=15000;notif('⏳ ¡+15 segundos añadidos!');
+  }else if(tipo==='rayo'){
+    E.rayoActivo=true;
+    // Efecto visual en el botón
+    const pu=id('pu-rayo');if(pu){pu.style.background='rgba(255,153,0,.25)';pu.style.borderColor='#ff9900';}
+    notif('⚡ ¡Rayo activado! Próxima respuesta correcta = DAÑO DOBLE');
+  }else if(tipo==='congelar'){
+    E.timerCongelado=true;
+    // Congelar visualmente el timer
+    clearInterval(E.timerID);
+    id('timer-fill').style.background='#00e5ff';
+    notif('❄️ ¡Tiempo congelado por 10 segundos!');
+    setTimeout(()=>{
+      E.timerCongelado=false;
+      id('timer-fill').style.background='';
+      if(!E.bloqueado){
+        // Reanudar el timer con el tiempo ajustado
+        const tl={'Fácil':30,'Normal':25,'Difícil':20}[E.dificultad]||25;
+        E.tiempoInicio=Date.now()-((tl-E.tiempoRestante)*1000);
+        iniciarTimerDesde(tl);
+      }
+    },10000);
+  }else if(tipo==='ojo'){
+    // Resaltar brevemente la respuesta correcta
+    const q=E.preguntaActual;
+    const corrBtn=id('btn-op-'+q.respuesta_idx);
+    if(corrBtn){
+      corrBtn.style.background='rgba(40,167,69,.35)';
+      corrBtn.style.borderColor='#28a745';
+      corrBtn.style.boxShadow='0 0 20px rgba(40,167,69,.5)';
+      setTimeout(()=>{
+        corrBtn.style.background='';corrBtn.style.borderColor='';corrBtn.style.boxShadow='';
+      },1800);
+    }
+    notif('👁️ ¡Visión mística! La respuesta correcta brilló por 1.8 seg');
+  }
+  actualizarHUD();
+}
+
+function anim(elId,kf,dur=550){
+  const el=id(elId);if(!el)return;
+  el.style.animation='none';el.getBoundingClientRect();
+  el.style.animation=`${kf} ${dur}ms ease-out`;
+}
+
+function mostrarDmg(txt,color,esEnemigo){
+  const arena=id('arena'),fl=document.createElement('div');
+  fl.className='dmg-float';fl.textContent=txt;fl.style.color=color;
+  fl.style.left=(esEnemigo?'60%':'10%');fl.style.top='30%';
+  arena.appendChild(fl);setTimeout(()=>fl.remove(),1400);
+}
+
+// ═══════════════════════════════════════════
+// RESPONDER
+// ═══════════════════════════════════════════
+async function responder(idx){
+  if(E.bloqueado)return;E.bloqueado=true;clearInterval(E.timerID);
+  const q=E.preguntaActual,ok=idx===q.respuesta_idx;
+  const tiempo_ms=Date.now()-E.tiempoInicio;
+
+  // Registrar respuesta en historial
+  E.historialRespuestas.push({
+    pregunta:q.pregunta,
+    opciones:q.opciones,
+    respuesta_idx:q.respuesta_idx,
+    elegida_idx:idx,
+    ok,
+    sala:E.sala,
+    esFaseJefe:E.esFaseJefe,
+  });
+
+  [0,1,2,3].forEach(i=>{
+    const btn=id('btn-op-'+i);btn.disabled=true;
+    if(i===q.respuesta_idx)btn.classList.add('correcta');
+    else if(i===idx)btn.classList.add('incorrecta');
+  });
+
+  const pts_base={'Fácil':10,'Normal':20,'Difícil':40}[E.dificultad]||20;
+  let pts=0;
+  if(ok){
+    E.combo++;if(E.combo>E.comboMax)E.comboMax=E.combo;
+    // Mejora combo
+    const extraCombo=(E.usuario?.compras||[]).includes('mejora_combo')?0.1:0;
+    const mc=1+(E.combo-1)*(0.25+extraCombo);
+    const tl={'Fácil':30,'Normal':25,'Difícil':20}[E.dificultad]||25;
+    let mt=Math.max(0.5,1-(tiempo_ms/(tl*1000))*0.5);
+    const pj=PERSONAJES[E.personaje];
+    if(pj.multVelocidad)mt*=pj.multVelocidad;
+    let pts_base_efectivo=pts_base;
+    pts=Math.round(pts_base_efectivo*mc*mt);
+    if(pj.multCombo)pts=Math.round(pts*pj.multCombo);
+    // Mejora puntaje +10%
+    if((E.usuario?.compras||[]).includes('mejora_puntaje'))pts=Math.round(pts*1.1);
+    // Rayo: doble daño
+    if(E.rayoActivo){
+      pts*=2;E.rayoActivo=false;
+      const pu=id('pu-rayo');if(pu){pu.style.background='';pu.style.borderColor='';}
+      mostrarDmg('⚡ RAYO ×2!','#ff9900',true);
+    }
+    E.puntaje+=pts;E.correctas++;
+    // Monedas ganadas (1 moneda por pregunta + bonus)
+    const multMonedas=(E.usuario?.compras||[]).includes('mejora_monedas')?1.2:1;
+    const monedasQ=Math.ceil((pts_base/10)*multMonedas);
+    E.monedasGanadas+=monedasQ;
+    // Respuesta rápida (<5 seg)
+    if(tiempo_ms<5000)E.respuestasRapidas++;
+    anim('pj-cont','kAtaque');
+    setTimeout(()=>{
+      anim('enemy-cont','kDañoInv');
+      mostrarDmg(`💥-${pts_base}`,'#ff5555',true);
+      E.enemigoHp=Math.max(0,E.enemigoHp-1);refrescarHpEnemigo();
+    },300);
+  }else{
+    E.combo=0;E.incorrectas++;
+    if(E.escudoActivo){
+      E.escudoActivo=false;notif('🛡️ ¡Escudo absorbió el ataque!');
+      anim('pj-cont','kEsquivar');mostrarDmg('🛡️ BLOQ','#74a0f0',false);
+    }else if(!E.esFaseJefe){
+      // Ángel: revivir
+      if(E.vidas<=1&&!E.revivirUsado&&E.personaje==='angel'&&(E.usuario?.compras||[]).includes('angel')){
+        E.revivirUsado=true;notif('😇 ¡El Ángel te revivió!');
+        mostrarDmg('😇 REVIVIR','#ffe0ff',false);
+      }else{
+        E.vidas--;anim('pj-cont','kDaño');mostrarDmg('-1❤','#ff3333',false);
+      }
+    }
+    anim('enemy-cont','kAtaqueInv');
+  }
+  actualizarHUD();
+
+  await mostrarResultadoOverlay(ok,pts,ok?'':q.opciones[q.respuesta_idx]);
+
+  if(E.esFaseJefe){
+    await flujoJefe(ok,pts);
+  }else{
+    if(!ok&&E.vidas<=0){
+      await guardarPartida(false);mostrarPantallaFin(false);
+    }else{
+      if(E.enemigoHp<=0){
+        await promesaAnim('enemy-cont','kMorir',970);
+        id('enemy-cont').style.animation='';
+        if(E.sala<5){
+          E.sala++;
+          await transicionSala(E.sala);
+          cargarEnemigo(E.sala);actualizarHUD();
+        }else{
+          E.esFaseJefe=true;E.jefeVida=3;E.jefePreguntaNum=0;E.jefeRespuestas=[];
+          id('jefe-panel').style.display='block';
+          cargarEnemigo(6);actualizarJefeHUD();
+          notif('☠ ¡EL GRAN OSCURO HA APARECIDO!','error');
+        }
+      }
+      E.bloqueado=false;mostrarPregunta();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// JEFE
+// ═══════════════════════════════════════════
+function actualizarJefeHUD(){
+  id('barra-jefe').style.width=(E.jefeVida/3*100)+'%';
+  id('jefe-vida-txt').textContent=`Vida: ${E.jefeVida}/3`;
+  const cs=document.querySelectorAll('.circulo-p');
+  E.jefeRespuestas.forEach((r,i)=>cs[i].className='circulo-p '+(r?'circulo-correcto':'circulo-incorrecto'));
+  if(E.jefePreguntaNum<3)cs[E.jefePreguntaNum].className='circulo-p circulo-actual';
+}
+
+async function flujoJefe(ok,pts){
+  E.jefeRespuestas.push(ok);
+  const pj=PERSONAJES[E.personaje];
+  const daño=pj.dobleDañoJefe?2:1;
+  if(ok){E.jefeVida=Math.max(0,E.jefeVida-daño);mostrarDmg(`✨CRÍTICO ${pts}`,'#ffd700',true);}
+  else if(!E.escudoActivo){E.vidas=Math.max(0,E.vidas-1);}
+  E.jefePreguntaNum++;actualizarJefeHUD();actualizarHUD();
+
+  if(E.jefePreguntaNum>=3){
+    const ganadas=E.jefeRespuestas.filter(Boolean).length;
+    if(ganadas>=2||E.jefeVida<=0){
+      await promesaAnim('enemy-cont','kMorir',970);
+      id('enemy-cont').style.animation='';
+      await guardarPartida(true);mostrarPantallaFin(true);
+    }else if(E.vidas<=0){
+      await guardarPartida(false);mostrarPantallaFin(false);
+    }else{
+      E.jefePreguntaNum=0;E.jefeRespuestas=[];
+      actualizarJefeHUD();notif('⚠ ¡El jefe sigue vivo!','error');
+      E.bloqueado=false;mostrarPregunta();
+    }
+  }else{E.bloqueado=false;mostrarPregunta();}
+}
+
+// ═══════════════════════════════════════════
+// ANIMACIONES
+// ═══════════════════════════════════════════
+function promesaAnim(elId,keyframe,durMs){
+  return new Promise(resolve=>{
+    const el=id(elId);if(!el){resolve();return}
+    el.style.animation='none';el.getBoundingClientRect();
+    el.style.animation=`${keyframe} ${durMs}ms ease-out forwards`;
+    setTimeout(resolve,durMs+30);
+  });
+}
+
+function transicionSala(sala){
+  return new Promise(resolve=>{
+    const pool=ENEMIGOS_SALA[Math.min(sala-1,4)];
+    const ne=TODOS_ENEMIGOS[pool[Math.floor(Math.random()*pool.length)]];
+    const div=document.createElement('div');div.className='sala-transicion';
+    div.innerHTML=`<div class="sala-enemigo-preview">${ne.sprite}</div>
+      <h2>⚔ Sala ${sala}</h2>
+      <p>Nuevo enemigo: <strong style="color:#ff9090">${ne.nombre}</strong></p>
+      <div style="margin-top:.7rem;color:var(--gris);font-size:.83rem">Continuando en <span id="scd">2</span>...</div>`;
+    document.body.appendChild(div);
+    let t=2;
+    const iv=setInterval(()=>{t--;const el=document.getElementById('scd');if(el)el.textContent=t;if(t<=0){clearInterval(iv);div.remove();resolve();}},900);
+  });
+}
+
+function mostrarResultadoOverlay(ok,pts,respCorrecta){
+  return new Promise(resolve=>{
+    const ov=id('resultado-overlay'),panel=id('resultado-panel');
+    panel.className='resultado-panel '+(ok?'correcto':'incorrecto');
+    id('resultado-icono').textContent=ok?'✓':'✗';
+    id('resultado-texto').textContent=ok?'¡CORRECTO!':'INCORRECTO';
+    id('resultado-texto').style.color=ok?'#28a745':'#dc3545';
+    id('resultado-pts').textContent=ok&&pts?`+${pts} pts`:'';
+    id('resultado-correcta').textContent=(!ok&&respCorrecta)?`Respuesta: ${respCorrecta}`:'';
+    ov.style.display='flex';
+    setTimeout(()=>{ov.style.display='none';resolve();},ok?780:1300);
+  });
+}
+
+// ═══════════════════════════════════════════
+// LOGROS - TOAST CON AUTO-DESAPARICIÓN
+// ═══════════════════════════════════════════
+let logroQueue=[];let logroTO=null;let logroMostrando=false;
+
+function mostrarLogroToast(logro){
+  logroQueue.push(logro);
+  if(!logroMostrando)procesarLogroQueue();
+}
+
+function procesarLogroQueue(){
+  if(!logroQueue.length){logroMostrando=false;return;}
+  logroMostrando=true;
+  const logro=logroQueue.shift();
+  const toast=id('logro-toast');
+  id('lt-icon').textContent=logro.icono;
+  id('lt-nombre').textContent=logro.nombre;
+  id('lt-recompensa').textContent=`+${logro.xp} XP · +${logro.monedas} 🪙`;
+  toast.classList.add('show');
+  clearTimeout(logroTO);
+  logroTO=setTimeout(()=>{
+    toast.classList.remove('show');
+    setTimeout(()=>procesarLogroQueue(),500);
+  },3500);
+}
+
+// ═══════════════════════════════════════════
+// VERIFICAR LOGROS
+// ═══════════════════════════════════════════
+async function verificarLogros(guardarDatos=true){
+  if(!E.usuario||E.usuario.esAdmin)return;
+  await DB.refrescar();
+  const ud=DB.getUsuario(E.usuario.username);
+  if(!ud)return;
+  const ps=DB.partidasDeUsuario(ud.username);
+  const logrosAnteriores=ud.logros||[];
+  const nuevosLogros=[];
+  let xpExtra=0,monedasExtra=0;
+
+  LOGROS.forEach(l=>{
+    if(!logrosAnteriores.includes(l.nombre)&&l.ok(ud,ps)){
+      nuevosLogros.push(l.nombre);
+      xpExtra+=l.xp;monedasExtra+=l.monedas;
+      setTimeout(()=>mostrarLogroToast(l),nuevosLogros.length*500);
+    }
+  });
+
+  if(nuevosLogros.length&&guardarDatos){
+    const nXP=(ud.xp_total||0)+xpExtra;
+    await DB.actualizarUsuario(ud.username,{
+      logros:[...logrosAnteriores,...nuevosLogros],
+      xp_total:nXP,nivel:Math.floor(nXP/500)+1,
+      monedas:(ud.monedas||0)+monedasExtra,
+    });
+    E.usuario=DB.getUsuario(ud.username);
+  }
+}
+
+// ═══════════════════════════════════════════
+// FIN / GUARDAR
+// ═══════════════════════════════════════════
+async function guardarPartida(gano){
+  if(!E.usuario||E.usuario.esAdmin)return;
+  const total=E.correctas+E.incorrectas,prec=total>0?Math.round(E.correctas/total*100):0;
+  const xp=Math.floor(E.puntaje/2);
+  await DB.refrescar();
+  await DB.agregarPartida({
+    username:E.usuario.username,fecha:new Date().toISOString(),
+    dificultad:E.dificultad,sala_llegada:E.sala,puntaje:E.puntaje,
+    xp_ganado:xp,combo_max:E.comboMax,correctas:E.correctas,
+    incorrectas:E.incorrectas,precision:prec,gano,
+    duracion_seg:Math.round((Date.now()-E.partidaInicio)/1000),personaje:E.personaje
+  });
+  const u=DB.getUsuario(E.usuario.username);
+  const nXP=(u.xp_total||0)+xp;
+  const monedasActuales=u.monedas||0;
+  const totalMonedas=monedasActuales+E.monedasGanadas;
+  const rRapidas=(u.respuestasRapidas||0)+E.respuestasRapidas;
+  await DB.actualizarUsuario(E.usuario.username,{
+    puntaje_total:(u.puntaje_total||0)+E.puntaje,
+    xp_total:nXP,nivel:Math.floor(nXP/500)+1,
+    partidas_jugadas:(u.partidas_jugadas||0)+1,
+    partidas_ganadas:(u.partidas_ganadas||0)+(gano?1:0),
+    combo_maximo:Math.max(u.combo_maximo||0,E.comboMax),
+    clase:E.personaje,monedas:totalMonedas,
+    respuestasRapidas:rRapidas,
+  });
+  E.usuario=DB.getUsuario(E.usuario.username);
+  await verificarLogros(true);
+}
+
+function cambiarFinTab(tab){
+  ['stats','feedback','analisis'].forEach(t=>{
+    id('ftab-'+t).classList.toggle('activo',t===tab);
+    id('fpanel-'+t).classList.toggle('activo',t===tab);
+  });
+}
+
+function clasificarPregunta(pregunta){
+  const p=pregunta.toLowerCase();
+  if(p.includes('log')||p.includes('ln'))return{tema:'Logaritmos',emoji:'📐'};
+  if(p.includes('factorial')||p.includes('!'))return{tema:'Factorial',emoji:'🔢'};
+  if(p.includes('raíz')||p.includes('∛')||p.includes('√'))return{tema:'Raíces',emoji:'√'};
+  if(p.includes('²')||p.includes('³')||p.includes('⁴')||p.includes('⁵')||p.includes('potencia')||p.includes('cuadrado')||p.includes('cubo'))return{tema:'Potencias',emoji:'🔺'};
+  if(p.includes('%')||p.includes('porcentaje'))return{tema:'Porcentajes',emoji:'💯'};
+  if(p.includes('fracci')||p.includes('1/'))return{tema:'Fracciones',emoji:'½'};
+  if(p.includes('área')||p.includes('perímetro')||p.includes('lados')||p.includes('triángulo')||p.includes('cuadrado')||p.includes('hexá')||p.includes('vértice'))return{tema:'Geometría',emoji:'📏'};
+  if(p.includes('hipotenusa')||p.includes('sen')||p.includes('cos')||p.includes('tan'))return{tema:'Trigonometría',emoji:'📐'};
+  if(p.includes('x+')||p.includes('x-')||p.includes('2x')||p.includes('3x')||p.includes('=')&&p.includes('x'))return{tema:'Álgebra',emoji:'🔣'};
+  if(p.includes('×')||p.includes('÷'))return{tema:'Multiplicación/División',emoji:'✖️'};
+  if(p.includes('+')||p.includes('-'))return{tema:'Suma/Resta',emoji:'➕'};
+  return{tema:'General',emoji:'🧮'};
+}
+
+function renderAnalisis(){
+  const panel=id('analisis-panel');
+  const total=E.historialRespuestas.length;
+  if(!total){panel.innerHTML='<div style="text-align:center;color:var(--gris);padding:1.5rem">Sin datos aún</div>';return;}
+
+  // Agrupar por tema
+  const temas={};
+  E.historialRespuestas.forEach(r=>{
+    const cat=clasificarPregunta(r.pregunta);
+    if(!temas[cat.tema])temas[cat.tema]={emoji:cat.emoji,correctas:0,total:0,preguntas:[]};
+    temas[cat.tema].total++;
+    if(r.ok)temas[cat.tema].correctas++;
+    temas[cat.tema].preguntas.push(r);
+  });
+
+  // Ordenar por % de error (más difícil primero)
+  const ordenados=Object.entries(temas).sort((a,b)=>{
+    const pa=a[1].correctas/a[1].total;
+    const pb=b[1].correctas/b[1].total;
+    return pa-pb;
+  });
+
+  // Encontrar temas con más dificultad
+  const dificiles=ordenados.filter(([,d])=>d.correctas/d.total<0.5);
+  const masDificil=dificiles.length>0?dificiles[0]:null;
+
+  let html=`<div class="analisis-titulo">🧠 Análisis de Rendimiento</div>`;
+
+  if(masDificil){
+    const pct=Math.round(masDificil[1].correctas/masDificil[1].total*100);
+    html+=`<div style="background:rgba(220,53,69,.12);border:1px solid rgba(220,53,69,.35);border-radius:10px;padding:.8rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.6rem;">
+      <span style="font-size:1.5rem">⚠️</span>
+      <div><div style="color:#ff7b7b;font-weight:700;font-size:.85rem">Área con más dificultad: ${masDificil[0]}</div>
+      <div style="color:var(--gris);font-size:.73rem;margin-top:.15rem">Solo ${pct}% de acierto — ¡Practica más este tema!</div></div>
+    </div>`;
+  }
+
+  html+=ordenados.map(([tema,datos])=>{
+    const pct=Math.round(datos.correctas/datos.total*100);
+    const nivel=pct>=80?'facil':pct>=50?'normal':'dificil';
+    const color=pct>=80?'#5cb85c':pct>=50?'var(--oro)':'#ff7b7b';
+    return `<div class="analisis-item ${nivel}">
+      <span style="font-size:1.3rem">${datos.emoji}</span>
+      <div style="flex:1">
+        <div class="analisis-tema">${tema} <span style="font-size:.7rem;color:var(--gris)">(${datos.correctas}/${datos.total})</span></div>
+        <div class="analisis-bar"><div class="analisis-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+      <div class="analisis-pct" style="color:${color}">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // Resumen final
+  const totalCorr=E.correctas,totalQ=total;
+  const precGlobal=Math.round(totalCorr/totalQ*100);
+  html+=`<div style="margin-top:.8rem;background:rgba(52,100,200,.1);border:1px solid rgba(52,100,200,.3);border-radius:10px;padding:.75rem 1rem;text-align:center;">
+    <div style="color:var(--azul);font-size:.8rem;font-weight:700">Precisión global de esta partida</div>
+    <div style="font-size:2rem;font-weight:900;color:${precGlobal>=80?'var(--verde)':precGlobal>=50?'var(--oro)':'var(--rojo)'};font-family:'Cinzel Decorative',cursive;margin:.2rem 0">${precGlobal}%</div>
+    <div style="font-size:.72rem;color:var(--gris)">${totalCorr} correctas · ${E.incorrectas} incorrectas · ${total} preguntas</div>
+  </div>`;
+
+  panel.innerHTML=html;
+}
+
+function renderFeedback(){
+  const errores=E.historialRespuestas.filter(r=>!r.ok);
+  const cont=id('feedback-lista');
+  if(!errores.length){
+    cont.innerHTML=`<div class="feedback-empty"><div class="feedback-big">🎯</div><strong style="color:var(--verde)">¡Perfecto!</strong><br>No cometiste ningún error en esta partida.<br><span style="font-size:.75rem;color:var(--gris);margin-top:.4rem;display:block">Sigue así, ¡eres increíble! ⚔</span></div>`;
+    return;
+  }
+  const letra=['A','B','C','D'];
+
+  // Detectar preguntas difíciles (respondidas mal por muchos = patrón)
+  const cont2=`
+    <div class="feedback-titulo">❌ Respuestas incorrectas (${errores.length} de ${E.historialRespuestas.length})</div>
+    <div style="background:rgba(52,100,200,.08);border:1px solid rgba(52,100,200,.2);border-radius:8px;padding:.6rem .9rem;margin-bottom:.8rem;font-size:.74rem;color:#74a0f0;">
+      💡 Estudia cada error. Verás tu respuesta, la correcta y una pista de resolución.
+    </div>
+    ${errores.map((r,i)=>{
+      const elegida=r.elegida_idx>=0?r.opciones[r.elegida_idx]:null;
+      const correcta=r.opciones[r.respuesta_idx];
+      const sala=r.esFaseJefe?'⚔ Jefe Final':`Sala ${r.sala}`;
+      const cat=clasificarPregunta(r.pregunta);
+      // Generar pista explicativa básica
+      const pista=generarPista(r.pregunta,correcta);
+      return `<div class="feedback-item">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;flex-wrap:wrap;">
+          <span style="font-size:.62rem;color:var(--gris);letter-spacing:.5px">${sala} · Pregunta ${i+1}</span>
+          <span style="font-size:.65rem;background:rgba(42,37,96,.5);color:var(--texto);padding:.08rem .4rem;border-radius:4px">${cat.emoji} ${cat.tema}</span>
+        </div>
+        <div class="feedback-pregunta">${r.pregunta}</div>
+        <div class="feedback-respuestas">
+          ${elegida?`<span class="feedback-tag erronea">✗ Elegiste: ${elegida}</span>`:'<span class="feedback-tag erronea">✗ Tiempo agotado</span>'}
+          <span style="color:var(--gris);font-size:.8rem">→</span>
+          <span class="feedback-tag correcta">✓ Correcta: ${correcta}</span>
+        </div>
+        ${pista?`<div style="margin-top:.5rem;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.18);border-radius:6px;padding:.45rem .7rem;font-size:.72rem;color:#ffe088;">
+          💡 <strong>Cómo resolverlo:</strong> ${pista}
+        </div>`:''}
+      </div>`;
+    }).join('')}
+  `;
+  cont.innerHTML=cont2;
+}
+
+function generarPista(pregunta,respuesta){
+  const p=pregunta.toLowerCase();
+  // Generar pistas contextuales
+  if(p.includes('log₁₀'))return`log₁₀(x) pregunta "¿a qué potencia elevo 10 para obtener x?". El resultado es ${respuesta}.`;
+  if(p.includes('log₂'))return`log₂(x) pregunta "¿a qué potencia elevo 2 para obtener x?". El resultado es ${respuesta}.`;
+  if(p.includes('log'))return`Los logaritmos invierten las potencias: si logₐ(b)=c entonces aᶜ=b. Respuesta: ${respuesta}.`;
+  if(p.includes('factorial')||p.includes('!'))return`n! = n × (n-1) × ... × 2 × 1. Multiplica todos los enteros hasta n. Resultado: ${respuesta}.`;
+  if(p.includes('∛'))return`La raíz cúbica de x es el número que multiplicado por sí mismo 3 veces da x. ∛27=3 porque 3×3×3=27. Aquí: ${respuesta}.`;
+  if(p.includes('raíz cuadrada'))return`La raíz cuadrada de x es el número que al cuadrado da x. Resultado: ${respuesta}.`;
+  if(p.includes('sen²')||p.includes('cos²'))return`Identidad pitagónica: sen²(x) + cos²(x) = 1 siempre, para cualquier ángulo x. Es una identidad trigonométrica fundamental.`;
+  if(p.includes('hipotenusa'))return`Teorema de Pitágoras: c² = a² + b². Con catetos 3 y 4: c² = 9+16 = 25, entonces c = 5.`;
+  if(p.includes('%'))return`Para calcular porcentajes: (porcentaje ÷ 100) × total. El resultado es ${respuesta}.`;
+  if(p.includes('1/'))return`Para sumar fracciones halla el mínimo común denominador. Resultado: ${respuesta}.`;
+  if((p.includes('²')||p.includes('³'))&&p.includes('='))return`Al elevar al cuadrado o cubo, multiplica el número por sí mismo esa cantidad de veces. Resultado: ${respuesta}.`;
+  if(p.match(/\d+x[\+\-\=]/i)||p.includes('cuánto es x'))return`Despeja x: aplica operaciones inversas a ambos lados de la ecuación. Resultado: x = ${respuesta}.`;
+  if(p.includes('×')&&p.includes('+'))return`Recuerda el orden: primero multiplicación/división, luego suma/resta (PEMDAS). Resultado: ${respuesta}.`;
+  return`Revisa el procedimiento paso a paso. La respuesta correcta es ${respuesta}.`;
+}
+
+function mostrarPantallaFin(gano){
+  clearInterval(E.timerID);
+  id('pantalla-pregunta').style.display='none';
+  id('pantalla-fin').style.display='block';
+  const total=E.correctas+E.incorrectas,prec=total>0?Math.round(E.correctas/total*100):0;
+  id('fin-icono').textContent=gano?'🏆':'💀';
+  id('fin-titulo').textContent=gano?'¡VICTORIA!':'GAME OVER';
+  id('fin-titulo').style.color=gano?'var(--oro)':'var(--rojo)';
+  id('fin-sub').textContent=gano?'¡Derrotaste al Gran Oscuro y salvaste el dungeon!':'El dungeon te venció… ¡Vuelve más fuerte!';
+  id('fin-stats').innerHTML=[
+    {lbl:'Puntaje',val:E.puntaje.toLocaleString()},{lbl:'Combo Máx.',val:`×${E.comboMax}`},
+    {lbl:'Correctas',val:E.correctas},{lbl:'Incorrectas',val:E.incorrectas},
+    {lbl:'Precisión',val:`${prec}%`},{lbl:'Sala llegada',val:`${E.sala}/6`},
+  ].map(s=>`<div class="stat-card"><div class="stat-val">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div>`).join('');
+  // Recompensas ganadas
+  if(E.usuario&&E.monedasGanadas>0){
+    const rd=id('fin-recompensas');rd.style.display='block';
+    rd.innerHTML=`🎁 Recompensas ganadas<br>🪙 +${E.monedasGanadas} monedas de oro · ⭐ +${Math.floor(E.puntaje/2)} XP`;
+  }
+  if(E.usuario)id('btn-ver-perfil').style.display='inline-flex';
+  // Renderizar feedback y análisis; activar tab stats por defecto
+  renderFeedback();
+  renderAnalisis();
+  cambiarFinTab('stats');
+  // Si hay errores, mostrar badge en tab feedback
+  const errCount=E.historialRespuestas.filter(r=>!r.ok).length;
+  id('ftab-feedback').textContent=errCount>0?`📚 Fallos (${errCount})`:'📚 Retroalimentación';
+  // Badge en análisis
+  id('ftab-analisis').textContent='🧠 Análisis';
+}
+
+// ═══════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════
+let lbFiltro='todos';
+function filtrarLB(f){
+  lbFiltro=f;
+  ['todos','facil','normal','dificil','victorias'].forEach(k=>{
+    const el=id('lb-tab-'+k);if(el)el.classList.toggle('activo',k===f||
+      (k==='facil'&&f==='Fácil')||(k==='normal'&&f==='Normal')||(k==='dificil'&&f==='Difícil'));
+  });
+  // Normalize keys
+  const norm={'Fácil':'facil','Normal':'normal','Difícil':'dificil'}[f]||f;
+  ['todos','facil','normal','dificil','victorias'].forEach(k=>{
+    const el=id('lb-tab-'+k);if(el)el.classList.toggle('activo',k===norm);
+  });
+  cargarLeaderboard();
+}
+async function cargarLeaderboard(){
+  await DB.refrescar();
+  const cont=id('lb-lista'),usuarios=DB.getUsuarios().filter(u=>!u.esAdmin),partidas=DB.getPartidas();
+  let ranking;
+  const filtroNorm={'Fácil':'Fácil','Normal':'Normal','Difícil':'Difícil','facil':'Fácil','normal':'Normal','dificil':'Difícil'}[lbFiltro];
+
+  if(lbFiltro==='todos'){
+    ranking=usuarios.map(u=>({username:u.username,clase:u.clase||'mago',nivel:u.nivel||1,puntaje_total:u.puntaje_total||0,combo_maximo:u.combo_maximo||0,partidas_ganadas:u.partidas_ganadas||0,monedas:u.monedas||0})).sort((a,b)=>b.puntaje_total-a.puntaje_total);
+  }else if(lbFiltro==='victorias'){
+    ranking=usuarios.map(u=>({username:u.username,clase:u.clase||'mago',nivel:u.nivel||1,puntaje_total:u.puntaje_total||0,combo_maximo:u.combo_maximo||0,partidas_ganadas:u.partidas_ganadas||0,monedas:u.monedas||0})).sort((a,b)=>b.partidas_ganadas-a.partidas_ganadas);
+  }else{
+    const dif=filtroNorm||lbFiltro;
+    const map={};
+    partidas.filter(p=>p.dificultad===dif).forEach(p=>{if(!map[p.username]||p.puntaje>map[p.username])map[p.username]=p.puntaje;});
+    ranking=Object.entries(map).map(([u,pts])=>{const ud=DB.getUsuario(u)||{};return{username:u,clase:ud.clase||'mago',nivel:ud.nivel||1,puntaje_total:pts,combo_maximo:ud.combo_maximo||0,partidas_ganadas:ud.partidas_ganadas||0,monedas:ud.monedas||0};}).sort((a,b)=>b.puntaje_total-a.puntaje_total);
+  }
+  if(!ranking.length){cont.innerHTML='<div style="text-align:center;color:var(--gris);padding:3rem">Sé el primero en el ranking 🏆</div>';return;}
+  const pc=['oro','plata','bronce'],pi=['🥇','🥈','🥉'],sp={mago:'🧙',guerrero:'🛡️',arquero:'🏹',necro:'💀',dragon:'🐉',angel:'😇'};
+  const yo=E.usuario?.username;
+  cont.innerHTML=ranking.slice(0,20).map((j,i)=>{
+    const esYo=j.username===yo;
+    const cls=i===0?'lb-destacado':esYo?'lb-yo':'';
+    const valLabel=lbFiltro==='victorias'?`${j.partidas_ganadas} victorias`:`${j.puntaje_total.toLocaleString()} pts`;
+    return`<div class="lb-item ${cls}">
+      <div class="lb-pos ${pc[i]||''}">${pi[i]||i+1}</div>
+      <div style="font-size:1.3rem">${sp[j.clase]||'🧙'}</div>
+      <div style="flex:1">
+        <div class="lb-name">${j.username}${esYo?' <span style="font-size:.65rem;color:var(--azul);font-weight:700">(Tú)</span>':''}</div>
+        <div style="font-size:.7rem;color:var(--gris)">${j.partidas_ganadas} victorias · Combo ×${j.combo_maximo} · 🪙${(j.monedas||0).toLocaleString()}</div>
+      </div>
+      <div style="text-align:right"><div class="lb-pts">${valLabel}</div><div style="font-size:.7rem;color:var(--gris)">Niv.${j.nivel}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// PERFIL
+// ═══════════════════════════════════════════
+async function cargarPerfil(){
+  const u=E.usuario;if(!u)return;
+  await DB.refrescar();
+  const ud=DB.getUsuario(u.username)||u;
+  const pj=PERSONAJES[ud.clase||'mago']||PERSONAJES.mago;
+  id('perfil-avatar').textContent=pj.sprite;
+  id('perfil-nombre').textContent=ud.username;
+  id('perfil-clase').textContent=`Clase: ${pj.nombre} · Niv. ${ud.nivel||1}`;
+  id('perfil-monedas').textContent=`🪙 ${(ud.monedas||0).toLocaleString()} monedas`;
+  const ps=DB.partidasDeUsuario(ud.username);
+  const tC=ps.reduce((s,p)=>s+(p.correctas||0),0),tR=ps.reduce((s,p)=>s+(p.correctas||0)+(p.incorrectas||0),0);
+  const prec=tR>0?Math.round(tC/tR*100):0;
+  id('barra-prec').style.width=prec+'%';id('prec-txt').textContent=`${prec}%`;
+  id('perfil-stats').innerHTML=[
+    {lbl:'Nivel',val:ud.nivel||1},{lbl:'Puntaje Total',val:(ud.puntaje_total||0).toLocaleString()},
+    {lbl:'🪙 Monedas',val:(ud.monedas||0).toLocaleString()},{lbl:'Partidas',val:ud.partidas_jugadas||0},
+    {lbl:'Victorias',val:ud.partidas_ganadas||0},{lbl:'Combo Máx.',val:`×${ud.combo_maximo||0}`},
+    {lbl:'🔥 Racha Diaria',val:`${ud.racha_bonus||0} días`},{lbl:'XP Total',val:(ud.xp_total||0).toLocaleString()},
+  ].map(s=>`<div class="stat-card"><div class="stat-val">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div>`).join('');
+  const tbody=id('historial-tbody');
+  tbody.innerHTML=ps.length?ps.slice(0,15).map(s=>{
+    const dc={'Fácil':'badge-verde','Normal':'badge-oro','Difícil':'badge-rojo'}[s.dificultad]||'badge-azul';
+    return `<tr><td>${new Date(s.fecha).toLocaleDateString('es')}</td><td><span class="badge ${dc}">${s.dificultad}</span></td><td>${s.sala_llegada}</td><td><strong>${(s.puntaje||0).toLocaleString()}</strong></td><td>${s.correctas}</td><td>${s.precision||0}%</td><td>${s.gano?'<span class="badge badge-verde">Ganó</span>':'<span class="badge badge-rojo">Perdió</span>'}</td></tr>`;
+  }).join(''):`<tr><td colspan="7" style="text-align:center;color:var(--gris);padding:1.8rem">Sin partidas aún</td></tr>`;
+
+  const logrosUser=ud.logros||[];
+  id('logros-grid').innerHTML=LOGROS.map(l=>{
+    const ob=logrosUser.includes(l.nombre)||l.ok(ud,ps);
+    return `<div class="logro-card ${ob?'obtenido':''}">
+      <div class="logro-icono">${l.icono}</div>
+      <div>
+        <div class="logro-nombre">${l.nombre}</div>
+        <div class="logro-desc">${l.desc}</div>
+        <div class="logro-xp">+${l.xp} XP</div>
+        <div class="logro-monedas">+${l.monedas} 🪙</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════
+async function cargarAdmin(){
+  if(!E.usuario?.esAdmin)return;
+  await DB.refrescar();
+  const us=DB.getUsuarios(),ps=DB.getPartidas();
+  id('admin-stats').innerHTML=[
+    {val:us.length,lbl:'Usuarios'},{val:ps.length,lbl:'Partidas'},
+    {val:ps.filter(p=>p.gano).length,lbl:'Victorias'},
+    {val:ps.length?Math.round(ps.reduce((s,p)=>s+(p.puntaje||0),0)/ps.length):0,lbl:'Pts promedio'},
+  ].map(s=>`<div class="admin-stat"><div class="val">${s.val.toLocaleString()}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+  renderAdminTabla();
+}
+function renderAdminTabla(){
+  const q=(id('admin-buscar')?.value||'').toLowerCase();
+  let us=DB.getUsuarios().filter(u=>!u.esAdmin);
+  if(q)us=us.filter(u=>u.username.toLowerCase().includes(q)||u.email.toLowerCase().includes(q));
+  id('admin-tbody').innerHTML=!us.length
+    ?'<tr><td colspan="9" style="text-align:center;color:var(--gris);padding:1.8rem">Sin usuarios registrados</td></tr>'
+    :us.map(u=>`<tr><td><strong>${u.username}</strong></td><td style="color:var(--gris);font-size:.74rem">${u.email}</td><td>${PERSONAJES[u.clase||'mago'].sprite} ${u.clase||'mago'}</td><td>${u.nivel||1}</td><td>${(u.puntaje_total||0).toLocaleString()}</td><td>${u.partidas_jugadas||0}</td><td>${u.partidas_ganadas||0}</td><td>${(u.monedas||0).toLocaleString()}</td><td><button class="admin-btn-del" onclick="eliminarUsuario('${u.username}')">🗑</button></td></tr>`).join('');
+}
+async function eliminarUsuario(username){
+  if(!confirm(`¿Eliminar "${username}" y todas sus partidas?`))return;
+  await DB.setUsuarios(DB.getUsuarios().filter(u=>u.username!==username));
+  await DB.setPartidas(DB.getPartidas().filter(p=>p.username!==username));
+  notif(`Usuario ${username} eliminado`,'error');cargarAdmin();
+}
+function exportarDatos(){
+  const blob=new Blob([JSON.stringify({usuarios:DB.getUsuarios(),partidas:DB.getPartidas(),exportado:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dungeon_datos.json';a.click();
+  notif('📥 Datos exportados');
+}
+
+// ═══════════════════════════════════════════
+// NOTIF
+// ═══════════════════════════════════════════
+let nTO;
+function notif(msg,tipo='ok'){
+  const el=id('notif');
+  el.textContent=msg;el.className='notif '+(tipo==='error'?'error':tipo==='info'?'info':'');
+  clearTimeout(nTO);requestAnimationFrame(()=>el.classList.add('show'));
+  nTO=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ═══════════════════════════════════════════
+// RESTAURAR SESIÓN
+// ═══════════════════════════════════════════
+async function restaurarSesion(){
+  try{
+    const raw=localStorage.getItem('da_session');
+    if(!raw)return false;
+    const sess=JSON.parse(raw);
+    if(!sess?.username||!sess?.token)return false;
+    await DB.refrescar();
+    const user=DB.getUsuario(sess.username);
+    if(!user)return false;
+    // Verificar token: btoa(username + ':' + password_plano)
+    // El token guardado es btoa(u+':'+p) donde p es la pass en texto plano
+    // La contraseña en BD es btoa(p), así que decodificamos el token y comparamos
+    try{
+      const decoded=atob(sess.token); // "username:passplana"
+      const colonIdx=decoded.indexOf(':');
+      if(colonIdx<0)return false;
+      const tokenUser=decoded.substring(0,colonIdx);
+      const tokenPass=decoded.substring(colonIdx+1);
+      if(tokenUser!==sess.username)return false;
+      if(btoa(tokenPass)!==user.password)return false;
+    }catch(e){return false;}
+    E.usuario=user;
+    actualizarUI();
+    notif(`⚔ Sesión restaurada, ${user.username}!`,'info');
+    return true;
+  }catch(e){return false;}
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+(async()=>{
+  await DB.init();
+  await restaurarSesion();
+  actualizarUI();
+  cargarLeaderboard();
+  setInterval(()=>DB.refrescar(),60000);
+})();
+</script>
+</body>
+</html>
